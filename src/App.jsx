@@ -1,35 +1,39 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect } from 'react'
+import { useTheme } from './context/theme-context'
+import ThemeProvider from './context/ThemeProvider'
 
-function App() {
-  const [count, setCount] = useState(0)
+import './styles/theme.css'
+import './styles/index.css'
+
+import AppHeader from './components/layout/AppHeader'
+import AppContainer from './components/layout/AppContainer'
+
+function AppContent() {
+  const { theme } = useTheme()
+
+  useEffect(() => {
+    document.body.className = `theme-${theme}`
+  }, [theme])
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div className={`app theme-${theme}`}>
+      <AppHeader title="Personal Finance Tracker" />
+
+      <AppContainer>
+        <section className="card">
+          <p>
+            Theme: <strong>{theme}</strong>
+          </p>
+        </section>
+      </AppContainer>
+    </div>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  )
+}
