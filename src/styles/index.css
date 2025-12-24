@@ -50,6 +50,17 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
 }
 
+input, select {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+}
+input::placeholder { color: var(--muted) }
+label > span.muted { font-size: 12px }
+
+
 /* Paragraphs and spans */
 p, span, li, label {
   color: var(--text);

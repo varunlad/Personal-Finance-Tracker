@@ -1,12 +1,13 @@
 import { useEffect } from 'react'
 import { useTheme } from './context/theme-context'
 import ThemeProvider from './context/ThemeProvider'
+import AuthProvider from './context/AuthProvider'
 
 import './styles/theme.css'
 import './styles/index.css'
 
 import AppHeader from './components/layout/AppHeader'
-import AppContainer from './components/layout/AppContainer'
+import ProtectedContainer from './components/common/ProtectedContainer'
 
 function AppContent() {
   const { theme } = useTheme()
@@ -18,22 +19,22 @@ function AppContent() {
   return (
     <div className={`app theme-${theme}`}>
       <AppHeader title="Personal Finance Tracker" />
-
-      <AppContainer>
+      <ProtectedContainer>
+        {/* main app content; visible only when logged in */}
         <section className="card">
-          <p>
-            Theme: <strong>{theme}</strong>
-          </p>
+          <p>Welcome! You’re logged in.</p>
         </section>
-      </AppContainer>
+      </ProtectedContainer>
     </div>
   )
 }
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppContent />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </AuthProvider>
   )
 }
