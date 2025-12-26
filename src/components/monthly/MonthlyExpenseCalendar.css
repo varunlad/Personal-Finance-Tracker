@@ -1,0 +1,109 @@
+
+/* ============ Monthly Expense Calendar Styles ============ */
+
+/* Header (month & year with navigation arrows) */
+.cal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.cal-title {
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+}
+.cal-nav.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Weekday labels row */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.cal-week {
+  margin-bottom: 6px;
+}
+.cal-weekcell {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Days grid: use minmax to avoid overflow/overlap */
+.cal-days {
+  /* On desktop/tablet: fixed-ish height */
+  grid-auto-rows: 90px;
+}
+
+/* Day cells */
+.cal-cell {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  /* Prevent content bleeding into next row */
+  overflow: hidden;
+
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.cal-cell:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+}
+
+/* Empty placeholders before/after the month */
+.cal-empty {
+  background: transparent;
+  border: none;
+}
+
+/* Day number + amount */
+.cal-daynum {
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1; /* keep compact */
+}
+
+/* Keep the amount on one line; truncate if too long */
+.cal-amount {
+  font-size: 13px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, var(--border));
+  border-radius: 6px;
+  padding: 4px 6px;
+  width: fit-content;
+
+  white-space: nowrap;      /* avoid wrapping */
+  text-overflow: ellipsis;  /* show ellipsis if too long */
+  overflow: hidden;
+}
+.has-expense {
+  outline: 2px solid color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+/* =================== Responsive tweaks =================== */
+
+/* <= 900px: slightly smaller rows */
+@media (max-width: 900px) {
+  .cal-days { grid-auto-rows: minmax(80px, auto); }
+}
+
+/* <= 640px: mobile — let rows grow if content needs it */
+@media (max-width: 640px) {
+  .cal-grid { gap: 4px; }              /* tighter gaps */
+  .cal-weekcell { font-size: 11px; }   /* smaller weekday labels */
+  .cal-days { grid-auto-rows: minmax(72px, auto); } /* flex height */
+
+  .cal-cell { padding: 6px; gap: 4px; }  /* tighter padding */
+  .cal-daynum { font-size: 13px; }       /* smaller numbers */
+  .cal-amount { font-size: 12px; padding: 3px 6px; } /* compact badge */
+}

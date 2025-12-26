@@ -1,0 +1,364 @@
+/* Header & controls */
+.ea-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.ea-title {
+  font-weight: 600;
+  flex: 1;
+}
+.ea-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ea-control select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 6px;
+  color: var(--text);
+}
+
+/* Subtitle */
+.ea-subtitle {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* Cards grid */
+.ea-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.ea-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--card);
+}
+
+/* NEW: Card header row + percentage badge */
+.ea-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.ea-percent {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 2px 6px;
+  margin-left: 5px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.ea-amount-lg {
+  font-size: 20px;
+  font-weight: 700;
+}
+.ea-amount {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Progress bars */
+.ea-bar {
+  height: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-top: 6px;
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  overflow: hidden;
+}
+.ea-bar-fill {
+  height: 100%;
+}
+.ea-bar-fill.mf {
+  background: #6a5acd;
+} /* slate blue */
+.ea-bar-fill.stock {
+  background: #2e8b57;
+} /* sea green */
+.ea-bar-fill.shopping {
+  background: #e22bd9;
+} /* blueviolet */
+.ea-bar-fill.grocery {
+  background: #ff8c00;
+} /* dark orange */
+.ea-bar-fill.other {
+  background: #cd5c5c;
+} /* indian red */
+
+/* Table wrapper and table */
+.ea-table-wrap {
+  overflow: auto; /* enables horizontal scrolling on mobile */
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.ea-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px; /* forces horizontal overflow on small screens */
+}
+.ea-table th,
+.ea-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap; /* keep columns compact for horizontal scroll */
+}
+.ea-table thead th {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+/* NEW: Sticky first column (“Day”) */
+.ea-sticky-day {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--card, var(--surface));
+  box-shadow: 1px 0 0 var(--border); /* subtle divider on sticky edge */
+}
+
+/* Actions column and edit button */
+.ea-actions-col {
+  width: 110px;
+}
+.ea-edit-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+.ea-edit-btn:hover {
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+}
+.ea-edit-btn:active {
+  transform: scale(0.98);
+}
+.ea-edit-btn--ghost {
+  background: transparent;
+  color: var(--muted);
+}
+
+/* Modal */
+.ea-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.ea-modal {
+  width: 100%;
+  max-width: 640px;
+  background: var(--card, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  animation: slideUp 0.25s ease;
+}
+.ea-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.ea-modal-title {
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+.ea-close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+}
+.ea-modal-body {
+  padding: 12px 16px 16px;
+}
+
+/* Editor table inside modal */
+.ea-edit-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+.ea-edit-table th,
+.ea-edit-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.ea-edit-table select,
+.ea-edit-table input[type="number"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  color: var(--text);
+}
+
+/* Delete/restore buttons */
+.ea-del-btn {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: var(--text);
+  cursor: pointer;
+}
+.ea-del-btn.is-active {
+  background: color-mix(in srgb, #10b981 16%, transparent); /* restore */
+}
+
+/* Visual cue for rows marked for deletion */
+.ea-row-deleted td {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+/* Modal actions */
+.ea-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ea-modal-actions .spacer {
+  flex: 1;
+}
+
+/* Animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Fallback themed buttons if not globally defined */
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-contrast, #fff);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.btn-secondary:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+}
+
+/* ---- Info icon + tooltip ---- */
+.ea-info {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+.ea-info:focus {
+  outline: none;
+}
+
+.ea-info-icon {
+  color: var(--text);
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+.ea-info:hover .ea-info-icon,
+.ea-info:focus .ea-info-icon {
+  opacity: 1;
+}
+
+/* Tooltip bubble (on hover/focus) */
+.ea-tooltip {
+  position: absolute;
+  left: -90px;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  min-width: 220px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 2;
+  cursor: pointer;
+}
+.ea-info:hover .ea-tooltip,
+.ea-info:focus .ea-tooltip {
+  opacity: 1;
+}
+
+/* Optional arrow */
+.ea-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 90%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--border);
+}
+.ea-tooltip::before {
+  content: "";
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 90%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--card);
+}
+
+/* ---- Existing percentage badge etc. stay unchanged ---- */
+
+/* ---- NEW: bar color for Rent/Bills ---- */
+.ea-bar-fill.rentBills {
+  background: #5aa1ff;
+} /* soft blue distinct from stock */
