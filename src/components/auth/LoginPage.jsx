@@ -1,79 +1,81 @@
+import { useState } from "react";
+import { useAuth } from "../../context/auth-context";
+import "../../styles/auth.css";
 
-import { useState } from 'react'
-import { useAuth } from '../../context/auth-context'
-
-export default function LoginPage() {
-  const { login } = useAuth()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+export default function LoginPage({ onSwitchToSignup }) {
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
     try {
-      await login(email.trim(), password)
+      await login(email.trim(), password);
     } catch (err) {
-      setError(err.message || 'Login failed')
+      setError(err.message || "Login failed");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <main className="container">
-      <section className="card" style={{ maxWidth: 420, margin: '40px auto' }}>
-        <h2 style={{ marginBottom: 12 }}>Login</h2>
+    <main className="auth-container">
+      <section className="auth-card">
+        <h2 className="auth-title">Login</h2>
 
-        {error && <p className="text-red" style={{ marginBottom: 12 }}>{error}</p>}
+        {error && <p className="auth-error">{error}</p>}
 
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 10 }}>
+        <form onSubmit={handleSubmit} className="auth-form">
           <label>
-            <span style={{ display: 'block', marginBottom: 6 }}>Email</span>
+            <span>Email</span>
             <input
+              id="email_id"
               type="email"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ width: '100%', padding: 8 }}
               required
             />
           </label>
 
           <label>
-            <span style={{ display: 'block', marginBottom: 6 }}>Password</span>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <span>Password</span>
+            <div className="password-wrapper">
               <input
-                type={showPassword ? 'text' : 'password'}
+                className="password-id"
+                type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ flex: 1, padding: 8 }}
                 required
               />
               <button
                 type="button"
-                className="btn-secondary"
-                onClick={() => setShowPassword(s => !s)}
-                style={{ whiteSpace: 'nowrap' }}
+                className="toggle-btn"
+                onClick={() => setShowPassword((s) => !s)}
               >
-                {showPassword ? 'Hide' : 'Show'}
+                {showPassword ? "🙈" : "👁️"}
               </button>
             </div>
           </label>
 
-          <button className="btn" type="submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
+          <button className="auth-btn" type="submit" disabled={loading}>
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
-        <p className="muted" style={{ marginTop: 12, fontSize: 13 }}>
-          Demo login accepts any email/password (no server yet).
+        <p className="auth-switch">
+          Don’t have an account?{" "}
+          <button type="button" onClick={onSwitchToSignup} className="link-btn">
+            Sign up
+          </button>
         </p>
       </section>
     </main>
-  )
+  );
 }

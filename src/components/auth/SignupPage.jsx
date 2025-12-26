@@ -1,10 +1,10 @@
 
 import { useState } from 'react'
 import { useAuth } from '../../context/auth-context'
+import '../../styles/auth.css'
 
 export default function SignupPage({ onSwitchToLogin }) {
   const { signup } = useAuth()
-
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -12,16 +12,11 @@ export default function SignupPage({ onSwitchToLogin }) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [accepted, setAccepted] = useState(false)
-
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // simple validators
-  const isEmailValid = (val) =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)
-
+  const isEmailValid = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)
   const passwordStrength = (val) => {
-    // length ≥ 8, includes letter and digit
     const longEnough = val.length >= 8
     const hasLetter = /[A-Za-z]/.test(val)
     const hasDigit = /\d/.test(val)
@@ -31,7 +26,6 @@ export default function SignupPage({ onSwitchToLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-
     if (!name.trim()) return setError('Please enter your name')
     if (!isEmailValid(email)) return setError('Please enter a valid email')
     const strength = passwordStrength(password)
@@ -42,7 +36,6 @@ export default function SignupPage({ onSwitchToLogin }) {
     setLoading(true)
     try {
       await signup({ name: name.trim(), email: email.trim(), password })
-      // success: AuthProvider will set user; the ProtectedContainer will take over
     } catch (err) {
       setError(err.message || 'Signup failed')
     } finally {
@@ -53,107 +46,97 @@ export default function SignupPage({ onSwitchToLogin }) {
   const strength = passwordStrength(password)
 
   return (
-    <main className="container">
-      <section className="card" style={{ maxWidth: 480, margin: '40px auto' }}>
-        <h2 style={{ marginBottom: 12 }}>Create account</h2>
-        <p className="muted" style={{ marginTop: -6, marginBottom: 12 }}>
-          Sign up to start tracking your finances
-        </p>
+    <main className="auth-container">
+      <section className="auth-card">
+        <h2 className="auth-title">Create Account</h2>
+        <p className="auth-subtitle">Sign up to start tracking your finances</p>
 
-        {error && <p className="text-red" style={{ marginBottom: 12 }}>{error}</p>}
+        {error && <p className="auth-error">{error}</p>}
 
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 10 }}>
+        <form onSubmit={handleSubmit} className="auth-form">
           <label>
-            <span style={{ display: 'block', marginBottom: 6 }}>Name</span>
+            <span>Name</span>
             <input
               type="text"
               placeholder="Your full name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              style={{ width: '100%', padding: 8 }}
               required
             />
           </label>
 
           <label>
-            <span style={{ display: 'block', marginBottom: 6 }}>Email</span>
+            <span>Email</span>
             <input
               type="email"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ width: '100%', padding: 8 }}
               required
             />
           </label>
 
           <label>
-            <span style={{ display: 'block', marginBottom: 6 }}>Password</span>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <span>Password</span>
+            <div className="password-wrapper">
               <input
                 type={showPassword ? 'text' : 'password'}
+                placeholder="At least 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
-                style={{ flex: 1, padding: 8 }}
                 required
               />
               <button
                 type="button"
-                className="btn-secondary"
-                onClick={() => setShowPassword(s => !s)}
-                style={{ whiteSpace: 'nowrap' }}
+                className="toggle-btn"
+                onClick={() => setShowPassword((s) => !s)}
               >
-                {showPassword ? 'Hide' : 'Show'}
+                {showPassword ? '🙈' : '👁️'}
               </button>
             </div>
-            {/* Inline strength helper */}
-            <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-              <span style={{ color: strength.longEnough ? 'var(--green)' : 'var(--red)' }}>• 8+ chars</span>{' '}
-              <span style={{ color: strength.hasLetter ? 'var(--green)' : 'var(--red)' }}>• letter</span>{' '}
-              <span style={{ color: strength.hasDigit ? 'var(--green)' : 'var(--red)' }}>• number</span>
+            <div className="password-strength">
+              <span className={strength.longEnough ? 'ok' : 'fail'}>• 8+ chars</span>
+              <span className={strength.hasLetter ? 'ok' : 'fail'}>• letter</span>
+              <span className={strength.hasDigit ? 'ok' : 'fail'}>• number</span>
             </div>
           </label>
 
           <label>
-            <span style={{ display: 'block', marginBottom: 6 }}>Confirm Password</span>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <span>Confirm Password</span>
+            <div className="password-wrapper">
               <input
                 type={showConfirm ? 'text' : 'password'}
+                placeholder="Repeat password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Repeat password"
-                style={{ flex: 1, padding: 8 }}
                 required
               />
               <button
                 type="button"
-                className="btn-secondary"
-                onClick={() => setShowConfirm(s => !s)}
-                style={{ whiteSpace: 'nowrap' }}
+                className="toggle-btn"
+                onClick={() => setShowConfirm((s) => !s)}
               >
-                {showConfirm ? 'Hide' : 'Show'}
+                {showConfirm ? '🙈' : '👁️'}
               </button>
             </div>
           </label>
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-            <input type="checkbox" checked={accepted} onChange={() => setAccepted(a => !a)} />
-            <span className="muted" style={{ fontSize: 13 }}>
-              I accept the Terms & Privacy Policy
-            </span>
+          <label className="terms">
+            <input type="checkbox" checked={accepted} onChange={() => setAccepted((a) => !a)} />
+            <span>I accept the Terms & Privacy Policy</span>
           </label>
 
-          <button className="btn" type="submit" disabled={loading}>
+          <button className="auth-btn" type="submit" disabled={loading}>
             {loading ? 'Creating account...' : 'Sign up'}
           </button>
         </form>
 
-        <div style={{ marginTop: 16 }}>
-          <button type="button" className="btn-secondary" onClick={onSwitchToLogin}>
-            Already have an account? Sign in
+        <p className="auth-switch">
+          Already have an account?{' '}
+          <button type="button" onClick={onSwitchToLogin} className="link-btn">
+            Login
           </button>
-        </div>
+        </p>
       </section>
     </main>
   )

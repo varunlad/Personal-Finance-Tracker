@@ -1,0 +1,62 @@
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modal-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  padding: 16px;
+}
+
+.modal-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.modal-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 8px 0 12px;
+}
+
+.modal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.modal-list-item + .modal-list-item {
+  border-top: 1px dashed var(--border);
+}
+.item-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 4px;
+}
+.item-date { color: var(--muted); }
+.item-amount { font-weight: 600; color: var(--text); }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
