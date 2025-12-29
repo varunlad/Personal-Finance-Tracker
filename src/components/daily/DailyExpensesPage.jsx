@@ -1,7 +1,7 @@
 
 import { useState } from "react"
 import MonthlyExpenseCalendar from "../monthly/MonthlyExpenseCalendar"
-import ExpenseAnalysis from "./ExpenseAnalysis"
+import ExpenseAnalysis from "../expense-analysis/ExpenseAnalysis"
 
 /**
  * Helper to flatten mixed shapes:
@@ -80,12 +80,12 @@ export default function DailyExpensesPage() {
 
   return (
     <>
-      <section className="card">
+      {/* <section className="card">
         <h3>Monthly Expenses</h3>
         <p className="muted">
           Tap a day to see details. Navigate months with arrows.
         </p>
-      </section>
+      </section> */}
 
       <MonthlyExpenseCalendar
         year={year}

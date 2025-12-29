@@ -132,7 +132,7 @@ export default function SignupPage({ onSwitchToLogin }) {
         </form>
 
         <p className="auth-switch">
-          Already have an account?{' '}
+          Already have an account?
           <button type="button" onClick={onSwitchToLogin} className="link-btn">
             Login
           </button>

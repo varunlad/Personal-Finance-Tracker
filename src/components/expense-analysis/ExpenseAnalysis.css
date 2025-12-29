@@ -1,4 +1,4 @@
-/* Header & controls */
+/* ================= Header & Controls ================= */
 .ea-header {
   display: flex;
   align-items: center;
@@ -22,14 +22,14 @@
   color: var(--text);
 }
 
-/* Subtitle */
+/* ================= Subtitle ================= */
 .ea-subtitle {
   font-size: 14px;
   color: var(--muted);
   margin-bottom: 8px;
 }
 
-/* Cards grid */
+/* ================= Cards Grid ================= */
 .ea-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -43,7 +43,7 @@
   background: var(--card);
 }
 
-/* NEW: Card header row + percentage badge */
+/* Card header row + percentage badge */
 .ea-card-row {
   display: flex;
   align-items: center;
@@ -71,7 +71,7 @@
   font-weight: 600;
 }
 
-/* Progress bars */
+/* ================= Progress Bars ================= */
 .ea-bar {
   height: 8px;
   border: 1px solid var(--border);
@@ -91,15 +91,18 @@
 } /* sea green */
 .ea-bar-fill.shopping {
   background: #e22bd9;
-} /* blueviolet */
+} /* magenta */
 .ea-bar-fill.grocery {
   background: #ff8c00;
 } /* dark orange */
 .ea-bar-fill.other {
   background: #cd5c5c;
 } /* indian red */
+.ea-bar-fill.rentBills {
+  background: #5aa1ff;
+} /* soft blue */
 
-/* Table wrapper and table */
+/* ================= Table ================= */
 .ea-table-wrap {
   overflow: auto; /* enables horizontal scrolling on mobile */
   border: 1px solid var(--border);
@@ -120,8 +123,11 @@
 .ea-table thead th {
   background: color-mix(in srgb, var(--primary) 10%, transparent);
 }
+.ea-table thead th:first-child {
+  background: var(--card);
+}
 
-/* NEW: Sticky first column (“Day”) */
+/* Sticky first column (“Day”) */
 .ea-sticky-day {
   position: sticky;
   left: 0;
@@ -130,7 +136,7 @@
   box-shadow: 1px 0 0 var(--border); /* subtle divider on sticky edge */
 }
 
-/* Actions column and edit button */
+/* ================= Actions column and edit button ================= */
 .ea-actions-col {
   width: 110px;
 }
@@ -154,8 +160,20 @@
   background: transparent;
   color: var(--muted);
 }
+.ea-edit-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--border);
+}
 
-/* Modal */
+/* Dim future rows */
+.ea-row-future {
+  opacity: 0.55;
+}
+
+/* ================= Modal ================= */
 .ea-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -260,7 +278,7 @@
   }
 }
 
-/* Fallback themed buttons if not globally defined */
+/* ================= Buttons fallback ================= */
 .btn-primary {
   background: var(--primary);
   color: var(--primary-contrast, #fff);
@@ -285,7 +303,7 @@
   border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
 }
 
-/* ---- Info icon + tooltip ---- */
+/* ================= Info icon + tooltip ================= */
 .ea-info {
   position: relative;
   display: inline-flex;
@@ -299,7 +317,6 @@
 .ea-info:focus {
   outline: none;
 }
-
 .ea-info-icon {
   color: var(--text);
   opacity: 0.6;
@@ -310,7 +327,7 @@
   opacity: 1;
 }
 
-/* Tooltip bubble (on hover/focus) */
+/* Tooltip bubble */
 .ea-tooltip {
   position: absolute;
   left: -90px;
@@ -329,14 +346,13 @@
   pointer-events: none;
   transition: opacity 0.15s ease;
   z-index: 2;
-  cursor: pointer;
 }
 .ea-info:hover .ea-tooltip,
 .ea-info:focus .ea-tooltip {
   opacity: 1;
 }
 
-/* Optional arrow */
+/* Tooltip arrow */
 .ea-tooltip::after {
   content: "";
   position: absolute;
@@ -355,10 +371,3 @@
   border: 6px solid transparent;
   border-top-color: var(--card);
 }
-
-/* ---- Existing percentage badge etc. stay unchanged ---- */
-
-/* ---- NEW: bar color for Rent/Bills ---- */
-.ea-bar-fill.rentBills {
-  background: #5aa1ff;
-} /* soft blue distinct from stock */
