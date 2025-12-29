@@ -80,6 +80,7 @@ p, span, li, label {
   position: sticky;
   top: 0;
   background: var(--bg);
+  z-index: 999;
 }
 
 .app-header h1 {
