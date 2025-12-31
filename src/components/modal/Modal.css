@@ -2,11 +2,12 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.35);
+  background: rgba(0, 0, 0, 0.35);
   display: grid;
   place-items: center;
   z-index: 1000;
   padding: 16px;
+  overscroll-behavior: contain; /* Prevent scroll chaining */
 }
 
 .modal-panel {
@@ -15,8 +16,10 @@
   border-radius: 12px;
   max-width: 520px;
   width: 100%;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
   padding: 16px;
+  max-height: calc(100vh - 32px); /* Prevent overflow on small screens */
+  overflow-y: auto; /* Allow scrolling inside modal if content is long */
 }
 
 .modal-title {
@@ -42,21 +45,64 @@
   margin: 0;
   padding: 0;
 }
+
 .modal-list-item + .modal-list-item {
   border-top: 1px dashed var(--border);
 }
+
 .item-line {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   padding: 8px 4px;
 }
-.item-date { color: var(--muted); }
-.item-amount { font-weight: 600; color: var(--text); }
+
+.item-date {
+  color: var(--muted);
+}
+
+.item-amount {
+  font-weight: 600;
+  color: var(--text);
+}
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 12px;
+}
+
+/* ✅ Mobile adjustments */
+@media (max-width: 480px) {
+  .modal-panel {
+    padding: 12px;
+    border-radius: 8px;
+    max-height: calc(100vh - 24px);
+    width: 92%;
+  }
+
+  .modal-title {
+    font-size: 16px;
+  }
+
+  .modal-total {
+    font-size: 14px;
+    padding: 6px 8px;
+  }
+
+  .item-line {
+    font-size: 14px;
+    gap: 8px;
+    padding: 6px 2px;
+  }
+
+  .item-amount {
+    font-size: 14px;
+  }
+
+  .modal-actions button {
+    font-size: 14px;
+    padding: 6px 10px;
+  }
 }

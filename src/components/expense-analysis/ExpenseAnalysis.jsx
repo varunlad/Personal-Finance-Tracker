@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react"
+
+import { useMemo, useState, useEffect } from "react"
 import "./ExpenseAnalysis.css"
 
 import HeaderControls from "./HeaderControls.jsx"
@@ -8,18 +9,22 @@ import EditorModal from "./EditorModal.jsx"
 
 /**
  * Props:
- *  - expenses: Array<{ date: 'YYYY-MM-DD', amount: number, category?: string }>
+ *  - dayGroups: Array<{
+ *      date: 'YYYY-MM-DD',
+ *      total?: number,
+ *      items: Array<{ id: string, amount: number, category?: string, note?: string }>
+ *    }>
  *  - currency?: 'INR' | 'RS'
  *  - initialYear?: number
  *  - initialMonth?: number
- *  - onUpdateExpenses?: (next: Array<{ date: string; amount: number; category?: string }>) => void
+ *  - onUpdateDayGroups?: (next: Array<{ date: string; total?: number; items: Array<{ id: string; amount: number; category?: string; note?: string }> }>) => void
  */
 export default function ExpenseAnalysis({
-  expenses = [],
+  dayGroups = [],
   currency = "RS",
   initialYear,
   initialMonth,
-  onUpdateExpenses,
+  onUpdateDayGroups,
 }) {
   /* ---------- Helpers ---------- */
   const pad2 = (n) => String(n).padStart(2, "0")
@@ -79,15 +84,28 @@ export default function ExpenseAnalysis({
   }
 
   /* ---------- Initial selection ---------- */
+  const flatAll = useMemo(() => {
+    const out = []
+    for (const g of dayGroups) {
+      for (const it of g.items || []) {
+        out.push({
+          id: it.id,
+          date: g.date,
+          amount: Number(it.amount) || 0,
+          category: normalizeCat(it.category),
+        })
+      }
+    }
+    return out
+  }, [dayGroups])
+
   const allYM = useMemo(() => {
-    const set = new Set(
-      expenses.map((e) => {
-        const { y, m } = parseYMD(e.date)
-        return `${y}-${pad2(m)}`
-      })
-    )
+    const set = new Set(flatAll.map((e) => {
+      const { y, m } = parseYMD(e.date)
+      return `${y}-${pad2(m)}`
+    }))
     return Array.from(set).sort()
-  }, [expenses])
+  }, [flatAll])
 
   let defaultYear = today.y
   let defaultMonth = today.m
@@ -101,41 +119,51 @@ export default function ExpenseAnalysis({
   const [month, setMonth] = useState(initialMonth ?? defaultMonth)
 
   /* ---------- Filtering & Aggregations ---------- */
-  const monthExpenses = useMemo(
-    () => expenses.filter((e) => {
-      const { y, m } = parseYMD(e.date)
+  const groupsForMonth = useMemo(
+    () => dayGroups.filter((g) => {
+      const { y, m } = parseYMD(g.date)
       return y === year && m === month
     }),
-    [expenses, year, month]
+    [dayGroups, year, month]
   )
 
   const monthTotal = useMemo(() => {
     let t = 0
-    for (const e of monthExpenses) t += Number(e.amount) || 0
+    for (const g of groupsForMonth) {
+      if (typeof g.total === 'number') t += g.total
+      else t += (g.items || []).reduce((s, it) => s + (Number(it.amount) || 0), 0)
+    }
     return t
-  }, [monthExpenses])
+  }, [groupsForMonth])
 
   const monthByCategory = useMemo(() => {
     const cat = { ...emptyCats }
-    for (const e of monthExpenses) {
-      cat[normalizeCat(e.category)] += Number(e.amount) || 0
+    for (const g of groupsForMonth) {
+      for (const it of g.items || []) {
+        cat[normalizeCat(it.category)] += Number(it.amount) || 0
+      }
     }
     return cat
-  }, [emptyCats, monthExpenses])
+  }, [emptyCats, groupsForMonth])
 
   const totalsByDayInMonth = useMemo(() => {
     const map = new Map()
-    for (const e of monthExpenses) {
-      const { d } = parseYMD(e.date)
-      const c = normalizeCat(e.category)
-      const amt = Number(e.amount) || 0
+    for (const g of groupsForMonth) {
+      const { d } = parseYMD(g.date)
+      const total = typeof g.total === 'number'
+        ? g.total
+        : (g.items || []).reduce((s, it) => s + (Number(it.amount) || 0), 0)
+
       if (!map.has(d)) map.set(d, { total: 0, categories: { ...emptyCats } })
       const rec = map.get(d)
-      rec.total += amt
-      rec.categories[c] += amt
+      rec.total += total
+      for (const it of g.items || []) {
+        const c = normalizeCat(it.category)
+        rec.categories[c] += Number(it.amount) || 0
+      }
     }
     return map
-  }, [emptyCats, monthExpenses])
+  }, [emptyCats, groupsForMonth])
 
   /* ---------- Editor state ---------- */
   const [editingDay, setEditingDay] = useState(null)
@@ -144,28 +172,22 @@ export default function ExpenseAnalysis({
 
   function openEditor(dayNum) {
     if (!canEditDay(year, month, dayNum)) return
-
     const dateStr = toYMD(year, month, dayNum)
-    const indexesForDay = []
-    for (let i = 0; i < expenses.length; i++) {
-      if (expenses[i].date === dateStr) indexesForDay.push(i)
-    }
+    const group = dayGroups.find((g) => g.date === dateStr)
     const rows = []
-    let idxPos = 0
-    for (const e of monthExpenses) {
-      const { d } = parseYMD(e.date)
-      if (d === dayNum) {
-        const originalIndex = indexesForDay[idxPos] ?? -1
-        idxPos++
+
+    if (group && Array.isArray(group.items)) {
+      for (const it of group.items) {
         rows.push({
-          id: cryptoRandomId(),
-          amount: Number(e.amount) || 0,
-          category: normalizeCat(e.category),
-          originalIndex,
+          id: cryptoRandomId(),           // UI row id
+          expenseId: it.id,               // backend expense id
+          amount: Number(it.amount) || 0,
+          category: normalizeCat(it.category),
           isNew: false,
         })
       }
     }
+
     setEditingDay(dayNum)
     setEditRows(rows)
     setPendingDeleteIds(new Set())
@@ -181,7 +203,7 @@ export default function ExpenseAnalysis({
     if (editingDay && !canEditDay(year, month, editingDay)) return
     setEditRows((rows) => [
       ...rows,
-      { id: cryptoRandomId(), amount: 0, category: "other", originalIndex: -1, isNew: true },
+      { id: cryptoRandomId(), expenseId: null, amount: 0, category: "other", isNew: true },
     ])
   }
 
@@ -199,36 +221,83 @@ export default function ExpenseAnalysis({
   }
 
   function saveChanges() {
-    if (!onUpdateExpenses) {
-      console.warn("onUpdateExpenses is not provided. Changes will not persist.")
+    if (!onUpdateDayGroups) {
+      console.warn("onUpdateDayGroups is not provided. Changes will not persist.")
       closeEditor()
       return
     }
+
     const dateStr = toYMD(year, month, editingDay)
-    const next = expenses.slice()
-    // apply edits & deletes
+    const nextGroups = dayGroups.slice()
+    const idx = nextGroups.findIndex((g) => g.date === dateStr)
+
+    // Build next items from editRows (skip deletes)
+    const nextItems = []
     for (const r of editRows) {
       const isDelete = pendingDeleteIds.has(r.id)
-      if (r.originalIndex >= 0) {
-        if (isDelete) {
-          next.splice(r.originalIndex, 1)
-        } else {
-          next[r.originalIndex] = {
-            ...next[r.originalIndex],
-            date: dateStr,
-            amount: Number(r.amount) || 0,
-            category: r.category,
-          }
-        }
+      if (isDelete) continue
+
+      const amt = Number(r.amount) || 0
+      const cat = normalizeCat(r.category)
+
+      if (r.expenseId) {
+        // update existing by id
+        nextItems.push({ id: r.expenseId, amount: amt, category: cat })
       } else {
-        if (!isDelete) {
-          next.push({ date: dateStr, amount: Number(r.amount) || 0, category: r.category })
-        }
+        // add new
+        nextItems.push({ id: cryptoRandomId(), amount: amt, category: cat })
       }
     }
-    onUpdateExpenses(next)
+
+    const newTotal = nextItems.reduce((s, it) => s + (Number(it.amount) || 0), 0)
+
+    if (nextItems.length === 0) {
+      // Remove the day group entirely if no items remain
+      if (idx >= 0) nextGroups.splice(idx, 1)
+    } else {
+      const updated = { date: dateStr, items: nextItems, total: newTotal }
+      if (idx >= 0) nextGroups[idx] = updated
+      else nextGroups.push(updated)
+    }
+
+    onUpdateDayGroups(nextGroups)
     closeEditor()
   }
+
+  /* ---------- Body scroll lock when EditorModal is open ---------- */
+  useEffect(() => {
+    const isOpen = editingDay !== null
+    if (!isOpen) return
+
+    const body = document.body
+    const prevOverflow = body.style.overflow
+    const prevPaddingRight = body.style.paddingRight
+
+    // Compensate for scrollbar width to prevent layout shift
+    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth
+    body.style.overflow = "hidden"
+    if (scrollBarWidth > 0) {
+      body.style.paddingRight = `${scrollBarWidth}px`
+    }
+
+    // Prevent touch scroll behind the modal (allow inner modal scrolling)
+    const preventTouchScroll = (e) => {
+      const modalPanel = document.querySelector(".ea-modal")
+      if (modalPanel && modalPanel.contains(e.target)) {
+        // Allow scrolling inside the modal panel
+        return
+      }
+      e.preventDefault()
+    }
+
+    document.addEventListener("touchmove", preventTouchScroll, { passive: false })
+
+    return () => {
+      body.style.overflow = prevOverflow
+      body.style.paddingRight = prevPaddingRight
+      document.removeEventListener("touchmove", preventTouchScroll)
+    }
+  }, [editingDay])
 
   /* ---------- UI derivations ---------- */
   const monthName = new Intl.DateTimeFormat("en", { month: "long" }).format(
@@ -249,10 +318,11 @@ export default function ExpenseAnalysis({
   /* ---------- Render ---------- */
   return (
     <section className="card">
+      {/* Keep HeaderControls working by passing a flat array view */}
       <HeaderControls
         year={year}
         month={month}
-        expenses={expenses}
+        expenses={flatAll}            // <-- flat for this component only
         setYear={setYear}
         setMonth={setMonth}
         parseYMD={parseYMD}
@@ -279,6 +349,7 @@ export default function ExpenseAnalysis({
         onOpenEditor={openEditor}
       />
 
+      {/* Ensure your EditorModal uses ea-modal-backdrop / ea-modal classes for CSS to apply */}
       <EditorModal
         editingDay={editingDay}
         categoryOptions={CATEGORY_OPTIONS}

@@ -1,3 +1,4 @@
+
 /* ================= Header & Controls ================= */
 .ea-header {
   display: flex;
@@ -182,6 +183,7 @@
   place-items: center;
   z-index: 1000;
   padding: 16px;
+  overscroll-behavior: contain; /* Prevent scroll chaining to the body */
 }
 .ea-modal {
   width: 100%;
@@ -191,6 +193,10 @@
   border-radius: 12px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
   animation: slideUp 0.25s ease;
+
+  /* Important: scroll inside the modal instead of the page */
+  max-height: calc(100vh - 32px);
+  overflow: auto;
 }
 .ea-modal-header {
   display: flex;
@@ -229,7 +235,7 @@
 }
 .ea-edit-table select,
 .ea-edit-table input[type="number"] {
-  width: 100%;
+  width: 82%;
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -370,4 +376,97 @@
   transform: translateX(-50%);
   border: 6px solid transparent;
   border-top-color: var(--card);
+}
+
+/* ================= Mobile adjustments ================= */
+@media (max-width: 480px) {
+  .ea-header {
+    gap: 8px;
+  }
+  .ea-title {
+    font-size: 15px;
+  }
+  .ea-controls {
+    gap: 8px;
+  }
+  .ea-control select {
+    padding: 5px 7px;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  .ea-subtitle {
+    font-size: 13px;
+  }
+
+  .ea-cards {
+    gap: 8px;
+  }
+  .ea-card {
+    padding: 8px;
+    border-radius: 8px;
+  }
+  .ea-card-row {
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .ea-percent {
+    font-size: 12px;
+    padding: 2px 6px;
+  }
+  .ea-amount-lg {
+    font-size: 18px;
+  }
+  .ea-amount {
+    font-size: 14px;
+  }
+
+  .ea-table th,
+  .ea-table td {
+    padding: 6px;
+    font-size: 14px;
+  }
+  .ea-table td:first-child{
+    font-weight: bold;
+  }
+
+  .ea-edit-btn {
+    padding: 5px 8px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+
+  .ea-modal {
+    max-height: calc(100vh - 24px);
+    border-radius: 10px;
+  }
+  .ea-modal-header {
+    padding: 10px 12px;
+  }
+  .ea-modal-body {
+    padding: 10px 12px 12px;
+  }
+  .ea-close {
+    font-size: 16px;
+  }
+  .ea-edit-table th,
+  .ea-edit-table td {
+    padding: 6px;
+    font-size: 14px;
+    width: 50%;
+  }
+  .ea-edit-table select,
+  .ea-edit-table input[type="number"] {
+    padding: 7px 9px;
+    border-radius: 8px;
+    font-size: 14px;
+    width: 82%;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
 }
