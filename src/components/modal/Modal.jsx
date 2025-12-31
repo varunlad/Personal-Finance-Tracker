@@ -18,6 +18,44 @@ export default function Modal({
   ariaLabel = 'Dialog',
   usePortal = true,
 }) {
+  // Lock background scroll when modal is open
+  useEffect(() => {
+    if (!open) return
+
+    const body = document.body
+    const prevOverflow = body.style.overflow
+    const prevPaddingRight = body.style.paddingRight
+
+    // Compute scrollbar width to avoid layout shift
+    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth
+    body.style.overflow = 'hidden'
+    if (scrollBarWidth > 0) {
+      body.style.paddingRight = `${scrollBarWidth}px`
+    }
+
+    // Prevent touch scroll behind modal (iOS & Android)
+    const preventTouchScroll = (e) => {
+      // If the touch is on the backdrop or outside the modal panel, prevent
+      // (allow inner content to scroll if it overflows)
+      const backdrop = document.querySelector('.modal-backdrop')
+      const panel = document.querySelector('.modal-panel')
+      if (!backdrop || !panel) return
+      // If target is within panel, allow; otherwise prevent
+      if (!panel.contains(e.target)) {
+        e.preventDefault()
+      }
+    }
+
+    document.addEventListener('touchmove', preventTouchScroll, { passive: false })
+
+    return () => {
+      // Restore styles
+      body.style.overflow = prevOverflow
+      body.style.paddingRight = prevPaddingRight
+      document.removeEventListener('touchmove', preventTouchScroll)
+    }
+  }, [open])
+
   useEffect(() => {
     if (!open) return
     const onKey = (e) => { if (e.key === 'Escape') onClose?.() }
@@ -50,4 +88,3 @@ export default function Modal({
   }
   return content
 }
-``

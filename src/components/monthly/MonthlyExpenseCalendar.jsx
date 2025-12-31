@@ -1,14 +1,17 @@
-
-import { useMemo, useState, useEffect } from 'react'
-import './MonthlyExpenseCalendar.css'
-import Modal from '../modal/Modal'
+import { useMemo, useState, useEffect } from "react";
+import "./MonthlyExpenseCalendar.css";
+import Modal from "../modal/Modal";
 
 /**
  * Props:
  *  - year: number
  *  - month: number (1-12)
  *  - onChange: (y:number, m:number) => void
- *  - expenses: Array<{ date: 'YYYY-MM-DD', amount: number, category?: string }>
+ *  - dayGroups: Array<{
+ *      date: 'YYYY-MM-DD',
+ *      total?: number,
+ *      items: Array<{ id: string, amount: number, category?: string }>
+ *    }>
  *  - startOnMonday?: boolean
  *  - currency?: 'INR' | 'RS'
  *  - minYearMonth?: { year:number; month:number }
@@ -18,125 +21,129 @@ export default function MonthlyExpenseCalendar({
   year,
   month,
   onChange,
-  expenses = [],
+  dayGroups = [],
   startOnMonday = false,
-  currency = 'RS',
+  currency = "RS",
   minYearMonth,
   maxYearMonth,
 }) {
-  const today = new Date()
-  const currentYM = { year: today.getFullYear(), month: today.getMonth() + 1 }
-  const maxYM = maxYearMonth ?? currentYM
+  const today = new Date();
+  const currentYM = { year: today.getFullYear(), month: today.getMonth() + 1 };
+  const maxYM = maxYearMonth ?? currentYM;
 
   // Helpers
-  const monthName = new Intl.DateTimeFormat('en', { month: 'long' }).format(
+  const monthName = new Intl.DateTimeFormat("en", { month: "long" }).format(
     new Date(year, month - 1, 1)
-  )
-  const daysInMonth = new Date(year, month, 0).getDate()
-  const firstDay = new Date(year, month - 1, 1)
-  const startWeekday = firstDay.getDay() // 0=Sun..6=Sat
-  const toMondayFirst = (d) => (d === 0 ? 6 : d - 1)
-  const offset = startOnMonday ? toMondayFirst(startWeekday) : startWeekday
+  );
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const firstDay = new Date(year, month - 1, 1);
+  const startWeekday = firstDay.getDay(); // 0=Sun..6=Sat
+  const toMondayFirst = (d) => (d === 0 ? 6 : d - 1);
+  const offset = startOnMonday ? toMondayFirst(startWeekday) : startWeekday;
 
   const weekLabels = startOnMonday
-    ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  // Build totals per day (summing multiple entries)
-  const totalsByDay = useMemo(() => {
-    const map = new Map()
-    for (const e of expenses) {
-      const [y, m, d] = e.date.split('-').map(Number)
+  // Build totals & items per day from grouped data
+  const { totalsByDay, itemsByDay } = useMemo(() => {
+    const totals = new Map();
+    const items = new Map();
+    for (const g of dayGroups) {
+      const [y, m, d] = g.date.split("-").map(Number);
       if (y === year && m === month) {
-        map.set(d, (map.get(d) || 0) + Number(e.amount || 0))
+        const total =
+          typeof g.total === "number"
+            ? g.total
+            : (g.items || []).reduce(
+                (s, it) => s + (Number(it.amount) || 0),
+                0
+              );
+
+        totals.set(d, (totals.get(d) || 0) + total);
+        const arr = items.get(d) || [];
+        for (const it of g.items || []) arr.push({ ...it, date: g.date });
+        items.set(d, arr);
       }
     }
-    return map
-  }, [expenses, year, month])
-
-  // Build items per day (for modal listing)
-  const itemsByDay = useMemo(() => {
-    const map = new Map()
-    for (const e of expenses) {
-      const [y, m, d] = e.date.split('-').map(Number)
-      if (y === year && m === month) {
-        const arr = map.get(d) || []
-        arr.push(e)
-        map.set(d, arr)
-      }
-    }
-    return map
-  }, [expenses, year, month])
+    return { totalsByDay: totals, itemsByDay: items };
+  }, [dayGroups, year, month]);
 
   // Calendar cells (6 rows * 7 cols = 42)
   const cells = useMemo(() => {
-    const blanksBefore = offset
-    const blanksAfter = 42 - blanksBefore - daysInMonth
+    const blanksBefore = offset;
+    const blanksAfter = 42 - blanksBefore - daysInMonth;
     return [
       ...Array(blanksBefore).fill(null),
-      ...Array(daysInMonth).fill(0).map((_, i) => i + 1),
+      ...Array(daysInMonth)
+        .fill(0)
+        .map((_, i) => i + 1),
       ...Array(Math.max(0, blanksAfter)).fill(null),
-    ]
-  }, [offset, daysInMonth])
+    ];
+  }, [offset, daysInMonth]);
 
   // Navigation with clamps
-  const canGoPrev = !minYearMonth || isAfterOrEqual({ year, month }, minYearMonth)
+  const canGoPrev =
+    !minYearMonth || isAfterOrEqual({ year, month }, minYearMonth);
   const canGoNext =
     isBeforeOrEqual({ year, month }, maxYM) &&
-    !(year === maxYM.year && month === maxYM.month)
+    !(year === maxYM.year && month === maxYM.month);
 
   function prevMonth() {
-    if (!canGoPrev) return
-    const prev = addMonths({ year, month }, -1)
-    if (minYearMonth && isBefore(prev, minYearMonth)) return
-    onChange(prev.year, prev.month)
+    if (!canGoPrev) return;
+    const prev = addMonths({ year, month }, -1);
+    if (minYearMonth && isBefore(prev, minYearMonth)) return;
+    onChange(prev.year, prev.month);
   }
   function nextMonth() {
-    if (!canGoNext) return
-    const next = addMonths({ year, month }, +1)
-    if (isAfter(next, maxYM)) return
-    onChange(next.year, next.month)
+    if (!canGoNext) return;
+    const next = addMonths({ year, month }, +1);
+    if (isAfter(next, maxYM)) return;
+    onChange(next.year, next.month);
   }
 
   const fmtAmount = (n) =>
-    currency === 'INR'
-      ? '₹ ' + new Intl.NumberFormat('en-IN').format(n)
-      : 'Rs. ' + new Intl.NumberFormat('en-IN').format(n)
+    currency === "INR"
+      ? "₹ " + new Intl.NumberFormat("en-IN").format(n)
+      : "₹ " + new Intl.NumberFormat("en-IN").format(n); // "RS" displayed as ₹
 
   // Modal state
-  const [openDay, setOpenDay] = useState(null)
+  const [openDay, setOpenDay] = useState(null);
 
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'Escape') setOpenDay(null)
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [])
+      if (e.key === "Escape") setOpenDay(null);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   function onDayClick(dayNum) {
-    const has = (totalsByDay.get(dayNum) || 0) > 0
-    if (has) setOpenDay(dayNum)
+    const has = (totalsByDay.get(dayNum) || 0) > 0;
+    if (has) setOpenDay(dayNum);
   }
 
-  const selectedItems = openDay ? (itemsByDay.get(openDay) || []) : []
-  const selectedTotal = selectedItems.reduce((s, it) => s + (Number(it.amount) || 0), 0)
-  const selectedDateObj = openDay ? new Date(year, month - 1, openDay) : null
+  const selectedItems = openDay ? itemsByDay.get(openDay) || [] : [];
+  const selectedTotal = selectedItems.reduce(
+    (s, it) => s + (Number(it.amount) || 0),
+    0
+  );
+  const selectedDateObj = openDay ? new Date(year, month - 1, openDay) : null;
   const selectedDateLabel =
     selectedDateObj &&
-    new Intl.DateTimeFormat('en', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-    }).format(selectedDateObj)
+    new Intl.DateTimeFormat("en", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    }).format(selectedDateObj);
 
   return (
     <section className="card">
       {/* Header */}
       <div className="cal-header">
         <button
-          className={`btn-secondary cal-nav ${canGoPrev ? '' : 'disabled'}`}
+          className={`btn-secondary cal-nav ${canGoPrev ? "" : "disabled"}`}
           onClick={prevMonth}
           disabled={!canGoPrev}
           aria-label="Previous month"
@@ -147,7 +154,7 @@ export default function MonthlyExpenseCalendar({
           {year}, {monthName}
         </div>
         <button
-          className={`btn-secondary cal-nav ${canGoNext ? '' : 'disabled'}`}
+          className={`btn-secondary cal-nav ${canGoNext ? "" : "disabled"}`}
           onClick={nextMonth}
           disabled={!canGoNext}
           aria-label="Next month"
@@ -169,43 +176,56 @@ export default function MonthlyExpenseCalendar({
       <div className="cal-grid cal-days">
         {cells.map((dayNum, idx) => {
           if (dayNum === null) {
-            return <div key={`empty-${idx}`} className="cal-cell cal-empty" />
+            return <div key={`empty-${idx}`} className="cal-cell cal-empty" />;
           }
-          const total = totalsByDay.get(dayNum) || 0
-          const clickable = total > 0
+          const total = totalsByDay.get(dayNum) || 0;
+          const clickable = total > 0;
           return (
             <button
               key={`day-${dayNum}-${idx}`}
               type="button"
-              className={`cal-cell ${total > 0 ? 'has-expense' : ''} ${clickable ? 'cal-clickable' : ''}`}
+              className={`cal-cell ${total > 0 ? "has-expense" : ""} ${
+                clickable ? "cal-clickable" : ""
+              }`}
               onClick={() => clickable && onDayClick(dayNum)}
               aria-label={
                 clickable
-                  ? `Open details for ${year}-${String(month).padStart(2,'0')}-${String(dayNum).padStart(2,'0')} with total ${fmtAmount(total)}`
-                  : `No expenses on ${year}-${String(month).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`
+                  ? `Open details for ${year}-${String(month).padStart(
+                      2,
+                      "0"
+                    )}-${String(dayNum).padStart(
+                      2,
+                      "0"
+                    )} with total ${fmtAmount(total)}`
+                  : `No expenses on ${year}-${String(month).padStart(
+                      2,
+                      "0"
+                    )}-${String(dayNum).padStart(2, "0")}`
               }
               disabled={!clickable}
             >
               <div className="cal-daynum">{dayNum}</div>
-              {total > 0 && <div className="cal-amount">{fmtAmount(total)}</div>}
+              {total > 0 && (
+                <div className="cal-amount">{fmtAmount(total)}</div>
+              )}
             </button>
-          )
+          );
         })}
       </div>
 
       {/* Modal with line items */}
-      <Modal open={!!openDay} onClose={() => setOpenDay(null)} ariaLabel="Day details">
+      <Modal
+        open={!!openDay}
+        onClose={() => setOpenDay(null)}
+        ariaLabel="Day details"
+      >
         <h4 className="modal-title">{selectedDateLabel}</h4>
-        <div className="modal-total">
-          <span className="muted">Total</span>
-          <strong>{fmtAmount(selectedTotal)}</strong>
-        </div>
         {selectedItems.length > 0 ? (
           <ul className="modal-list">
             {selectedItems.map((item, i) => (
-              <li key={`exp-${i}`} className="modal-list-item">
+              <li key={`exp-${item.id || i}`} className="modal-list-item">
                 <div className="item-line">
-                  <span className="item-date">{item.category || 'other'}</span>
+                  <span className="item-date">{item.category || "other"}</span>
                   <span className="item-amount">{fmtAmount(item.amount)}</span>
                 </div>
               </li>
@@ -214,25 +234,36 @@ export default function MonthlyExpenseCalendar({
         ) : (
           <p className="muted">No entries for this day.</p>
         )}
+        <div className="modal-total">
+          <span className="muted">Total</span>
+          <strong>{fmtAmount(selectedTotal)}</strong>
+        </div>
         <div className="modal-actions">
-          <button className="btn-secondary" onClick={() => setOpenDay(null)}>Close</button>
+          <button className="btn-secondary" onClick={() => setOpenDay(null)}>
+            Close
+          </button>
         </div>
       </Modal>
     </section>
-  )
+  );
 }
 
 /* ------------ Small Date Helpers ------------ */
 function addMonths({ year, month }, delta) {
-  const d = new Date(year, month - 1, 1)
-  d.setMonth(d.getMonth() + delta)
-  return { year: d.getFullYear(), month: d.getMonth() + 1 }
+  const d = new Date(year, month - 1, 1);
+  d.setMonth(d.getMonth() + delta);
+  return { year: d.getFullYear(), month: d.getMonth() + 1 };
 }
 function isBefore(a, b) {
-  return a.year < b.year || (a.year === b.year && a.month < b.month)
+  return a.year < b.year || (a.year === b.year && a.month < b.month);
 }
 function isAfter(a, b) {
-  return a.year > b.year || (a.year === b.year && a.month > b.month)
+  return a.year > b.year || (a.year === b.year && a.month > b.month);
 }
-function isBeforeOrEqual(a, b) { return !isAfter(a, b) }
-function isAfterOrEqual(a, b) { return !isBefore(a, b) }
+function isBeforeOrEqual(a, b) {
+  return !isAfter(a, b);
+}
+function isAfterOrEqual(a, b) {
+  return !isBefore(a, b);
+}
+``;
