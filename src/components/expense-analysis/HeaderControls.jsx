@@ -1,4 +1,4 @@
-// src/components/expense-analysis/HeaderControls.jsx
+
 export default function HeaderControls({
   year,
   month,
@@ -7,9 +7,16 @@ export default function HeaderControls({
   setMonth,
   parseYMD,
 }) {
-  const years = Array.from(
+  const dataYears = Array.from(
     new Set(expenses.map((e) => parseYMD(e.date).y))
   ).sort((a, b) => a - b);
+  const currentYear = new Date().getFullYear();
+
+  // Ensure dropdown shows current year and the currently selected year too
+  const years = Array.from(new Set([...dataYears, currentYear, year])).sort(
+    (a, b) => a - b
+  );
+
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
   return (
@@ -23,7 +30,6 @@ export default function HeaderControls({
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
           >
-            {years.length === 0 && <option value={year}>{year}</option>}
             {years.map((y) => (
               <option key={y} value={y}>
                 {y}

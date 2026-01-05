@@ -7,18 +7,6 @@ import SummaryCards from "./SummaryCards.jsx"
 import DayTable from "./DayTable.jsx"
 import EditorModal from "./EditorModal.jsx"
 
-/**
- * Props:
- *  - dayGroups: Array<{
- *      date: 'YYYY-MM-DD',
- *      total?: number,
- *      items: Array<{ id: string, amount: number, category?: string, note?: string }>
- *    }>
- *  - currency?: 'INR' | 'RS'
- *  - initialYear?: number
- *  - initialMonth?: number
- *  - onUpdateDayGroups?: (next: Array<{ date: string; total?: number; items: Array<{ id: string; amount: number; category?: string; note?: string }> }>) => void
- */
 export default function ExpenseAnalysis({
   dayGroups = [],
   currency = "RS",
@@ -26,7 +14,6 @@ export default function ExpenseAnalysis({
   initialMonth,
   onUpdateDayGroups,
 }) {
-  /* ---------- Helpers ---------- */
   const pad2 = (n) => String(n).padStart(2, "0")
 
   const fmtAmount = (n) =>
@@ -70,7 +57,6 @@ export default function ExpenseAnalysis({
     other: 0,
   }
 
-  // Edit restrictions: no future dates
   const now = new Date()
   const today = { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() }
   const cmpYM = (a, b) => (a.y === b.y ? a.m - b.m : a.y - b.y)
@@ -78,12 +64,11 @@ export default function ExpenseAnalysis({
     const sel = { y: year, m: month }
     const tYM = { y: today.y, m: today.m }
     const diff = cmpYM(sel, tYM)
-    if (diff > 0) return false         // future month
-    if (diff < 0) return true          // past month
-    return day <= today.d              // same month: only up to today
+    if (diff > 0) return false
+    if (diff < 0) return true
+    return day <= today.d
   }
 
-  /* ---------- Initial selection ---------- */
   const flatAll = useMemo(() => {
     const out = []
     for (const g of dayGroups) {
@@ -118,7 +103,6 @@ export default function ExpenseAnalysis({
   const [year, setYear] = useState(initialYear ?? defaultYear)
   const [month, setMonth] = useState(initialMonth ?? defaultMonth)
 
-  /* ---------- Filtering & Aggregations ---------- */
   const groupsForMonth = useMemo(
     () => dayGroups.filter((g) => {
       const { y, m } = parseYMD(g.date)
@@ -165,7 +149,6 @@ export default function ExpenseAnalysis({
     return map
   }, [emptyCats, groupsForMonth])
 
-  /* ---------- Editor state ---------- */
   const [editingDay, setEditingDay] = useState(null)
   const [editRows, setEditRows] = useState([])
   const [pendingDeleteIds, setPendingDeleteIds] = useState(new Set())
@@ -179,8 +162,8 @@ export default function ExpenseAnalysis({
     if (group && Array.isArray(group.items)) {
       for (const it of group.items) {
         rows.push({
-          id: cryptoRandomId(),           // UI row id
-          expenseId: it.id,               // backend expense id
+          id: cryptoRandomId(),
+          expenseId: it.id,
           amount: Number(it.amount) || 0,
           category: normalizeCat(it.category),
           isNew: false,
@@ -231,7 +214,6 @@ export default function ExpenseAnalysis({
     const nextGroups = dayGroups.slice()
     const idx = nextGroups.findIndex((g) => g.date === dateStr)
 
-    // Build next items from editRows (skip deletes)
     const nextItems = []
     for (const r of editRows) {
       const isDelete = pendingDeleteIds.has(r.id)
@@ -241,10 +223,8 @@ export default function ExpenseAnalysis({
       const cat = normalizeCat(r.category)
 
       if (r.expenseId) {
-        // update existing by id
         nextItems.push({ id: r.expenseId, amount: amt, category: cat })
       } else {
-        // add new
         nextItems.push({ id: cryptoRandomId(), amount: amt, category: cat })
       }
     }
@@ -252,7 +232,6 @@ export default function ExpenseAnalysis({
     const newTotal = nextItems.reduce((s, it) => s + (Number(it.amount) || 0), 0)
 
     if (nextItems.length === 0) {
-      // Remove the day group entirely if no items remain
       if (idx >= 0) nextGroups.splice(idx, 1)
     } else {
       const updated = { date: dateStr, items: nextItems, total: newTotal }
@@ -264,7 +243,6 @@ export default function ExpenseAnalysis({
     closeEditor()
   }
 
-  /* ---------- Body scroll lock when EditorModal is open ---------- */
   useEffect(() => {
     const isOpen = editingDay !== null
     if (!isOpen) return
@@ -273,18 +251,15 @@ export default function ExpenseAnalysis({
     const prevOverflow = body.style.overflow
     const prevPaddingRight = body.style.paddingRight
 
-    // Compensate for scrollbar width to prevent layout shift
     const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth
     body.style.overflow = "hidden"
     if (scrollBarWidth > 0) {
       body.style.paddingRight = `${scrollBarWidth}px`
     }
 
-    // Prevent touch scroll behind the modal (allow inner modal scrolling)
     const preventTouchScroll = (e) => {
       const modalPanel = document.querySelector(".ea-modal")
       if (modalPanel && modalPanel.contains(e.target)) {
-        // Allow scrolling inside the modal panel
         return
       }
       e.preventDefault()
@@ -299,7 +274,6 @@ export default function ExpenseAnalysis({
     }
   }, [editingDay])
 
-  /* ---------- UI derivations ---------- */
   const monthName = new Intl.DateTimeFormat("en", { month: "long" }).format(
     new Date(year, month - 1, 1)
   )
@@ -315,14 +289,12 @@ export default function ExpenseAnalysis({
     other: pct(monthByCategory.other, monthTotal),
   }
 
-  /* ---------- Render ---------- */
   return (
     <section className="card">
-      {/* Keep HeaderControls working by passing a flat array view */}
       <HeaderControls
         year={year}
         month={month}
-        expenses={flatAll}            // <-- flat for this component only
+        expenses={flatAll}
         setYear={setYear}
         setMonth={setMonth}
         parseYMD={parseYMD}
@@ -349,7 +321,6 @@ export default function ExpenseAnalysis({
         onOpenEditor={openEditor}
       />
 
-      {/* Ensure your EditorModal uses ea-modal-backdrop / ea-modal classes for CSS to apply */}
       <EditorModal
         editingDay={editingDay}
         categoryOptions={CATEGORY_OPTIONS}
@@ -369,7 +340,6 @@ export default function ExpenseAnalysis({
   )
 }
 
-/* ---------- tiny id helper ---------- */
 function cryptoRandomId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID()
   return "id-" + Math.random().toString(36).slice(2)

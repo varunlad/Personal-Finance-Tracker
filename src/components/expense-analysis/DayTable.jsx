@@ -1,3 +1,4 @@
+
 export default function DayTable({
   year, month, monthDays, totalsByDayInMonth, emptyCats, fmtAmount, pad2, canEditDay, onOpenEditor,
 }) {
@@ -13,7 +14,7 @@ export default function DayTable({
             <th>Shopping</th>
             <th>Grocery</th>
             <th>Rent/Bills</th>
-            <th></th>
+            <th>Other</th>
             <th className="ea-actions-col">Actions</th>
           </tr>
         </thead>
