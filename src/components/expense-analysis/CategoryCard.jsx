@@ -1,4 +1,3 @@
-// src/components/expense-analysis/CategoryCard.jsx
 import Info from "./Info";
 
 export default function CategoryCard({
