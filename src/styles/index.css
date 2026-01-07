@@ -129,3 +129,14 @@ p, span, li, label {
 /* Utility colors */
 .text-green { color: var(--green); }
 .text-red { color: var(--red); }
+
+.theme-dark input[type="date"] {
+  color: var(--text-primary, #e5e7eb);
+  background-color: var(--input-bg, #1f2937);
+  border: 1px solid var(--input-border, #374151);
+}
+
+.theme-dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}

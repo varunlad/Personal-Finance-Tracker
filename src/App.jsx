@@ -10,7 +10,6 @@ import './styles/index.css'
 import AppHeader from './components/layout/AppHeader'
 import ProtectedContainer from './components/common/ProtectedContainer'
 
-// ⬇️ Add this import
 import DailyExpensesPage from './components/daily/DailyExpensesPage'
 
 function AppContent() {
@@ -24,7 +23,6 @@ function AppContent() {
     <div className={`app theme-${theme}`}>
       <AppHeader title="Finance Tracker" />
       <ProtectedContainer>
-        {/* 👉 Replace placeholder with your page */}
         <DailyExpensesPage />
       </ProtectedContainer>
     </div>
