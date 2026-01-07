@@ -1,7 +1,7 @@
-
 import { useState } from "react";
 import MonthlyExpenseCalendar from "../monthly/MonthlyExpenseCalendar";
 import ExpenseAnalysis from "../expense-analysis/ExpenseAnalysis";
+import ExpenseSummary from "../expense-summary/ExpenseSummary";
 
 /**
  * Option B shape: grouped by day
@@ -48,6 +48,7 @@ export default function DailyExpensesPage() {
 
   return (
     <>
+      <ExpenseSummary dayGroups={dayGroups} />
       <MonthlyExpenseCalendar
         year={year}
         month={month}
@@ -56,7 +57,10 @@ export default function DailyExpensesPage() {
         startOnMonday={false}
         currency="RS"
         minYearMonth={{ year: 2025, month: 1 }}
-        maxYearMonth={{ year: today.getFullYear(), month: today.getMonth() + 1 }}
+        maxYearMonth={{
+          year: today.getFullYear(),
+          month: today.getMonth() + 1,
+        }}
       />
 
       <ExpenseAnalysis
