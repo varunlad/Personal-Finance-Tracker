@@ -87,14 +87,6 @@ export default function ExpenseSummary({ dayGroups }) {
     setError("");
   }
 
-  function handleResetYTD() {
-    setPendingStart(ytdStart);
-    setPendingEnd(today);
-    setAppliedStart(ytdStart);
-    setAppliedEnd(today);
-    setError("");
-  }
-
   // Build chart inputs from APPLIED range
   const { labels, values, total } = useMemo(() => {
     const filtered = filterByCustomRange(dayGroups, appliedStart, appliedEnd);
@@ -126,6 +118,7 @@ export default function ExpenseSummary({ dayGroups }) {
           <label className="date-field" aria-label="Start date">
             <input
               type="date"
+              lang="en-GB"
               value={pendingStartStr}
               min={minStr}
               max={maxStr}
@@ -138,6 +131,7 @@ export default function ExpenseSummary({ dayGroups }) {
           <label className="date-field" aria-label="End date">
             <input
               type="date"
+              lang="en-GB"
               value={pendingEndStr}
               min={minStr}
               max={maxStr}
@@ -152,9 +146,6 @@ export default function ExpenseSummary({ dayGroups }) {
             disabled={!!error}
           >
             Apply
-          </button>
-          <button className="btn ghost" onClick={handleResetYTD}>
-            Reset YTD
           </button>
         </div>
       </div>
@@ -174,23 +165,23 @@ export default function ExpenseSummary({ dayGroups }) {
           </p>
         </div>
       ) : (
-          <CategoryChartSwitcher
-            labels={labels}
-            values={values}
-            totalVal={total}
-            // colors can be customized; using a palette with your primary first
-            colors={[
-              "var(--primary)",
-              "#00B894",
-              "#E17055",
-              "#0984E3",
-              "#D63031",
-              "#FDCB6E",
-            ]}
-            themeMode={isDark ? "dark" : "light"}
-            currencySymbol="₹"
-            defaultType="pie"
-          />
+        <CategoryChartSwitcher
+          labels={labels}
+          values={values}
+          totalVal={total}
+          // colors can be customized; using a palette with your primary first
+          colors={[
+            "#0984E3",
+            "#114e08ff",
+            "#df0ccdff",
+            "#0bbd4fff",
+            "#D63031",
+            "#e05e08ff",
+          ]}
+          themeMode={isDark ? "dark" : "light"}
+          currencySymbol="₹"
+          defaultType="pie"
+        />
       )}
     </section>
   );

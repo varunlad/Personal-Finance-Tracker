@@ -31,10 +31,9 @@
 
 /* Date row */
 .date-row {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr auto;
+  display: flex;
   gap: 12px;
-  align-items: end;
+  align-items: center;
   margin-bottom: 14px;
 }
 .date-field { display: grid; gap: 6px; }
@@ -81,25 +80,41 @@ input[type="date"]:focus {
 
 /* Chart surface */
 
-/* Segmented chart toggle */
+
 .segmented {
   display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  gap: 0; /* no gaps, seamless buttons */
+  border-radius: 8px;
   overflow: hidden;
-  background: rgba(148, 163, 184, 0.12);
+  background: var(--surface, #f3f4f6); /* fallback light gray */
+  border: 1px solid var(--border, #d1d5db);
 }
+
 .seg {
-  padding: 8px 14px;
-  border-right: 1px solid var(--border);
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
   background: transparent;
-  color: var(--text);
+  color: var(--border);
+  border: none;
   cursor: pointer;
-  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+  transition: background 0.2s ease, color 0.2s ease;
 }
-.seg:last-child { border-right: none; }
-.seg:hover { transform: translateY(-1px); }
-.seg.active { background: var(--primary); color: #fff; }
+
+.seg:hover {
+  background: rgba(0, 0, 0, 0.06); /* subtle hover */
+}
+
+.seg.active {
+  background: var(--primary, #3b82f6);
+  color: #fff;
+}
+
+.seg + .seg {
+  border-left: 1px solid var(--border, #d1d5db);
+}
+
 
 /* Empty state & footer */
 .inline-error { margin: 8px 0; color: var(--red); }
@@ -127,5 +142,4 @@ input[type="date"]:focus {
 /* Responsive */
 @media (max-width: 768px) {
   .date-row { grid-template-columns: 1fr; align-items: start; }
-  .date-actions { margin-top: 6px; }
 }
