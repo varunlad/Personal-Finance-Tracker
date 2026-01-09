@@ -1,4 +1,5 @@
 
+// src/components/expense-analysis/ExpenseAnalysis.jsx
 import { useMemo, useState, useEffect } from "react"
 import "./ExpenseAnalysis.css"
 
@@ -239,7 +240,7 @@ export default function ExpenseAnalysis({
       else nextGroups.push(updated)
     }
 
-    onUpdateDayGroups(nextGroups)
+    onUpdateDayGroups(nextGroups) // parent merges month into summary + sets month view
     closeEditor()
   }
 

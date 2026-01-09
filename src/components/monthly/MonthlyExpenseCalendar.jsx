@@ -1,4 +1,5 @@
 
+// src/components/monthly/MonthlyExpenseCalendar.jsx
 import { useMemo, useState, useEffect } from 'react'
 import './MonthlyExpenseCalendar.css'
 import Modal from '../modal/Modal'
@@ -234,3 +235,4 @@ function isAfter(a, b) {
 }
 function isBeforeOrEqual(a, b) { return !isAfter(a, b) }
 function isAfterOrEqual(a, b) { return !isBefore(a, b) }
+``

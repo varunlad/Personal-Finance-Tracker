@@ -7,6 +7,7 @@
   padding: 18px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.10);
   transition: box-shadow 200ms ease, transform 180ms ease;
+  min-height: 500px;
 }
 .expense-summary.card:hover {
   transform: translateY(-1px);
@@ -77,6 +78,10 @@ input[type="date"]:focus {
 .btn.primary:hover { opacity: 0.95; }
 .btn.ghost { background: transparent; border-color: var(--border); }
 .btn[disabled] { opacity: 0.55; cursor: not-allowed; box-shadow: none; transform: none; }
+
+.summary-loader{
+    display: flex; justify-content: center; padding: 12px;
+}
 
 /* Chart surface */
 
