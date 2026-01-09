@@ -1,6 +1,6 @@
+
 import { useState } from "react";
-import { useAuth } from "../../context/auth-context";
-import "../../styles/auth.css";
+import { useAuth } from '../../context/auth-context'
 
 export default function LoginPage({ onSwitchToSignup }) {
   const { login } = useAuth();
@@ -16,6 +16,7 @@ export default function LoginPage({ onSwitchToSignup }) {
     setLoading(true);
     try {
       await login(email.trim(), password);
+      // success: AuthProvider persisted user+token; ProtectedContainer shows app
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {
@@ -79,3 +80,4 @@ export default function LoginPage({ onSwitchToSignup }) {
     </main>
   );
 }
+``

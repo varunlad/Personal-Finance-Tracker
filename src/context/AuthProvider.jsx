@@ -1,29 +1,65 @@
 
-import { useState } from 'react'
+// src/context/AuthProvider.jsx
+import { useEffect, useMemo, useState } from 'react'
 import { AuthContext } from './auth-context'
+import { request } from '../api/http'
 
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  const [token, setToken] = useState(null)
+  const [initializing, setInitializing] = useState(true)
 
-  // Mock login
+  useEffect(() => {
+    try {
+      const t = localStorage.getItem('auth_token')
+      const u = localStorage.getItem('auth_user')
+      if (t && u) {
+        setToken(t)
+        setUser(JSON.parse(u))
+      }
+    } finally {
+      setInitializing(false)
+    }
+  }, [])
+
+  const persist = (nextToken, nextUser) => {
+    setToken(nextToken)
+    setUser(nextUser)
+    localStorage.setItem('auth_token', nextToken)
+    localStorage.setItem('auth_user', JSON.stringify(nextUser))
+  }
+
+  const clear = () => {
+    setToken(null)
+    setUser(null)
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('auth_user')
+  }
+
   const login = async (email, password) => {
-    if (!email || !password) throw new Error('Please enter email and password')
-    await new Promise(res => setTimeout(res, 300))
-    setUser({ email })
+    const data = await request('/api/auth/login', {
+      method: 'POST',
+      body: { email, password },
+    })
+    persist(data.token, data.user)
+    return data.user
   }
 
-  // Mock signup (no server yet)
-  const signup = async ({ name, email, password }) => {
-    if (!name || !email || !password) throw new Error('Please fill all required fields')
-    await new Promise(res => setTimeout(res, 400))
-    // after successful signup, auto-login for demo
-    setUser({ email, name })
+  const signup = async ({ name, email, password, acceptTerms = true }) => {
+    return request('/api/auth/signup', {
+      method: 'POST',
+      body: { name, email, password, acceptTerms },
+    })
   }
 
-  const logout = () => setUser(null)
+  const logout = () => clear()
+
+  const authHeader = useMemo(() => (
+    token ? { Authorization: `Bearer ${token}` } : {}
+  ), [token])
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, token, initializing, login, signup, logout, authHeader }}>
       {children}
     </AuthContext.Provider>
   )
