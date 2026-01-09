@@ -14,4 +14,3 @@ export default function AuthGate() {
     ? <LoginPage onSwitchToSignup={() => setMode('signup')} />
     : <SignupPage onSwitchToLogin={() => setMode('login')} />
 }
-``

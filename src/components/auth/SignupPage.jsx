@@ -35,7 +35,9 @@ export default function SignupPage({ onSwitchToLogin }) {
 
     setLoading(true)
     try {
-      await signup({ name: name.trim(), email: email.trim(), password })
+      await signup({ name: name.trim(), email: email.trim(), password, acceptTerms: accepted })
+      // optional: after signup show login
+      onSwitchToLogin?.()
     } catch (err) {
       setError(err.message || 'Signup failed')
     } finally {
@@ -123,7 +125,7 @@ export default function SignupPage({ onSwitchToLogin }) {
 
           <label className="terms">
             <input type="checkbox" checked={accepted} onChange={() => setAccepted((a) => !a)} />
-            <span>I accept the Terms & Privacy Policy</span>
+            <span>I accept the Terms &amp; Privacy Policy</span>
           </label>
 
           <button className="auth-btn" type="submit" disabled={loading}>
