@@ -154,7 +154,7 @@ export default function CategoryChartSwitcher({
   ]);
 
   return (
-    <div className="chart-switcher">
+    <div className="chart-switcher" style={{ minHeight: 412 }}>
       <div className="segmented">
         <button
           className={chartType === "donut" ? "seg active" : "seg"}
