@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from "react";
 import CategoryChartSwitcher from "./CategoryChartSwitcher";
 import "./expenseSummary.css";
@@ -33,7 +34,6 @@ function formatYMD(date) {
  * - Does not mutate parent state or other components.
  *
  * Props:
- *  - dayGroups?: Array (ignored here; kept for compatibility with parent)
  *  - minSelectableDate?: Date (default: 2000-01-01) — allows picking back years
  *  - maxSelectableDate?: Date (default: today)
  */
@@ -43,6 +43,8 @@ export default function ExpenseSummary({
 }) {
   const { token } = useAuth(); // JWT from AuthProvider
   const today = new Date();
+
+  const MIN_LOADER_MS = 3000; // ✅ enforce 3s loader visibility before showing content
 
   // Clamp bounds for date inputs
   const minDate = minSelectableDate;
@@ -62,22 +64,21 @@ export default function ExpenseSummary({
   // Data returned by BACKEND for the applied range
   const [rangeGroups, setRangeGroups] = useState([]); // [{date, items, total}]
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  // Loader & gating
+  const [fetching, setFetching] = useState(false);    // shows the spinner
+  const [contentReady, setContentReady] = useState(false); // gates chart render
 
   function onPendingStartChange(e) {
     const next = parseInputDate(e.target.value);
     setPendingStart(next);
-    setError(
-      next > pendingEnd ? "Start date cannot be later than end date." : ""
-    );
+    setError(next > pendingEnd ? "Start date cannot be later than end date." : "");
   }
 
   function onPendingEndChange(e) {
     const next = parseInputDate(e.target.value);
     setPendingEnd(next);
-    setError(
-      pendingStart > next ? "End date cannot be earlier than start date." : ""
-    );
+    setError(pendingStart > next ? "End date cannot be earlier than start date." : "");
   }
 
   async function handleApply() {
@@ -87,16 +88,10 @@ export default function ExpenseSummary({
     }
     // Clamp once for safety against input bounds
     const start = new Date(
-      Math.max(
-        minDate.getTime(),
-        Math.min(pendingStart.getTime(), maxDate.getTime())
-      )
+      Math.max(minDate.getTime(), Math.min(pendingStart.getTime(), maxDate.getTime()))
     );
     const end = new Date(
-      Math.max(
-        minDate.getTime(),
-        Math.min(pendingEnd.getTime(), maxDate.getTime())
-      )
+      Math.max(minDate.getTime(), Math.min(pendingEnd.getTime(), maxDate.getTime()))
     );
 
     setAppliedStart(start);
@@ -108,22 +103,36 @@ export default function ExpenseSummary({
       return;
     }
 
-    setLoading(true);
+    // 🚦 start loader & gate
+    setFetching(true);
+    setContentReady(false);
+    const t0 = Date.now();
+
     try {
       const startStr = toYMD(start);
       const endStr = toYMD(end);
-      const data = await listRangeExpenses({
-        start: startStr,
-        end: endStr,
-        token,
-      });
+      const data = await listRangeExpenses({ start: startStr, end: endStr, token });
       const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
       setRangeGroups(sorted);
+
+      // Enforce min loader duration
+      const elapsed = Date.now() - t0;
+      const remaining = Math.max(0, MIN_LOADER_MS - elapsed);
+      setTimeout(() => {
+        setContentReady(true);
+        setFetching(false);
+      }, remaining);
     } catch (err) {
       setError(err.message || "Failed to fetch range summary");
       setRangeGroups([]);
-    } finally {
-      setLoading(false);
+
+      // Still enforce min loader timing before hiding (for smoothness)
+      const elapsed = Date.now() - t0;
+      const remaining = Math.max(0, MIN_LOADER_MS - elapsed);
+      setTimeout(() => {
+        setContentReady(false);
+        setFetching(false);
+      }, remaining);
     }
   }
 
@@ -134,11 +143,7 @@ export default function ExpenseSummary({
     async function fetchYTD() {
       // Build YTD range
       const start = new Date(today.getFullYear(), 0, 1);
-      const end = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate()
-      );
+      const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
       setAppliedStart(start);
       setAppliedEnd(end);
@@ -148,26 +153,39 @@ export default function ExpenseSummary({
 
       if (!token) return; // wait until logged in
 
-      setLoading(true);
+      // 🚦 start loader & gate
+      setFetching(true);
+      setContentReady(false);
+      const t0 = Date.now();
+
       try {
         const startStr = toYMD(start);
         const endStr = toYMD(end);
-        const data = await listRangeExpenses({
-          start: startStr,
-          end: endStr,
-          token,
-        });
+        const data = await listRangeExpenses({ start: startStr, end: endStr, token });
         const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
         if (!cancelled) setRangeGroups(sorted);
+
+        // Enforce min loader duration
+        const elapsed = Date.now() - t0;
+        const remaining = Math.max(0, MIN_LOADER_MS - elapsed);
+        setTimeout(() => {
+          if (cancelled) return;
+          setContentReady(true);
+          setFetching(false);
+        }, remaining);
       } catch (err) {
         if (!cancelled) {
-          setError(
-            err.message || "Failed to fetch current year-to-date summary"
-          );
+          setError(err.message || "Failed to fetch current year-to-date summary");
           setRangeGroups([]);
         }
-      } finally {
-        if (!cancelled) setLoading(false);
+
+        const elapsed = Date.now() - t0;
+        const remaining = Math.max(0, MIN_LOADER_MS - elapsed);
+        setTimeout(() => {
+          if (cancelled) return;
+          setContentReady(false);
+          setFetching(false);
+        }, remaining);
       }
     }
 
@@ -209,7 +227,9 @@ export default function ExpenseSummary({
   const isDark = document.body.classList.contains("theme-dark");
 
   return (
-    <section className="expense-summary card" aria-busy={loading}>
+    <section className="expense-summary card" aria-busy={fetching}>
+      <h3 style={{ marginBottom: 10 }}>Expense Summary</h3>
+
       {/* Range controls */}
       <div className="date-row">
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -242,18 +262,18 @@ export default function ExpenseSummary({
           <button
             className="btn primary"
             onClick={handleApply}
-            disabled={!!error || loading}
+            disabled={!!error || fetching}
             aria-label="Apply selected date range"
           >
-            {loading ? "Loading..." : "Apply"}
+            {fetching ? "Loading..." : "Apply"}
           </button>
         </div>
       </div>
 
-      {/* Loader */}
-      {loading && (
+      {/* Loader (smooth fade controlled by <Loader>, hard 3s by component logic) */}
+      {fetching && (
         <div className="summary-loader" aria-live="polite">
-          <Loader visible={loading} minDuration={300} enterDelay={50} />{" "}
+          <Loader visible={true} minDuration={300} enterDelay={50} />
         </div>
       )}
 
@@ -264,34 +284,35 @@ export default function ExpenseSummary({
         </div>
       )}
 
-      {/* Content */}
-      {rangeGroups.length === 0 && !loading ? (
-        <div className="empty-state">
-          <h3>No expense data in this range</h3>
-          <p className="muted">
-            Try expanding the range {formatYMD(appliedStart)} →{" "}
-            {formatYMD(appliedEnd)}, or ensure expenses exist for the selected
-            period.
-          </p>
-        </div>
-      ) : !loading ? (
-        <CategoryChartSwitcher
-          labels={labels}
-          values={values}
-          totalVal={total}
-          // colors can be customized; using a palette with your primary first
-          colors={[
-            "#0984E3",
-            "#114e08ff",
-            "#df0ccdff",
-            "#0bbd4fff",
-            "#D63031",
-            "#e05e08ff",
-          ]}
-          themeMode={isDark ? "dark" : "light"}
-          currencySymbol="₹"
-          defaultType="pie"
-        />
+      {/* Content gated by contentReady */}
+      {!fetching && contentReady ? (
+        rangeGroups.length === 0 ? (
+          <div className="empty-state">
+            <h3>No expense data in this range</h3>
+            <p className="muted">
+              Try expanding the range {formatYMD(appliedStart)} →{" "}
+              {formatYMD(appliedEnd)}, or ensure expenses exist for the selected
+              period.
+            </p>
+          </div>
+        ) : (
+          <CategoryChartSwitcher
+            labels={labels}
+            values={values}
+            totalVal={total}
+            colors={[
+              "#0984E3",
+              "#114e08ff",
+              "#df0ccdff",
+              "#0bbd4fff",
+              "#D63031",
+              "#e05e08ff",
+            ]}
+            themeMode={isDark ? "dark" : "light"}
+            currencySymbol="₹"
+            defaultType="pie"
+          />
+        )
       ) : null}
     </section>
   );
