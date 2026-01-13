@@ -1,50 +1,14 @@
-
-/* src/components/loader/Loader.css */
-
-/* -------- Wrapper fade/scale (smooth in/out) -------- */
-.loader-wrapper {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  /* start hidden state; JS toggles classes */
-  opacity: 0;
-  transform: scale(0.98);
-  transition: opacity 300ms ease, transform 300ms ease;
-}
-
-.loader-show {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.loader-hide {
-  opacity: 0;
-  transform: scale(0.98);
-}
-
-/* Optional small label */
-.loader-label {
-  font-size: 0.875rem;
-  color: var(--text-muted, #666);
-}
-
-/* -------- Spinner box (your Universe.io snippet) -------- */
+/* From Uiverse.io by Shoh2008 */ 
 .loader {
   width: 64px;
   height: 64px;
   position: relative;
-  background: #fff;
+  background: #FFF;
   border-radius: 4px;
   overflow: hidden;
-
-  /* subtle shadow to feel smoother */
-  box-shadow:
-    0 6px 14px rgba(0, 0, 0, 0.08),
-    0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
-/* moving shapes */
-.loader::before {
+.loader:before {
   content: "";
   position: absolute;
   left: 0;
@@ -57,7 +21,7 @@
   animation: slide 2s infinite ease-in-out alternate;
 }
 
-.loader::after {
+.loader:after {
   content: "";
   position: absolute;
   left: 10px;
@@ -72,13 +36,30 @@
 }
 
 @keyframes slide {
-  0%, 100% { bottom: -35px; }
-  25%, 75% { bottom: -2px; }
-  20%, 80% { bottom: 2px; }
+  0% , 100% {
+    bottom: -35px
+  }
+
+  25% , 75% {
+    bottom: -2px
+  }
+
+  20% , 80% {
+    bottom: 2px
+  }
 }
 
 @keyframes rotate {
-  0% { transform: rotate(-15deg); }
-  25%, 75% { transform: rotate(0deg); }
-  100% { transform: rotate(25deg); }
+  0% {
+    transform: rotate(-15deg)
+  }
+
+  25% , 75% {
+    transform: rotate(0deg)
+  }
+
+  100% {
+    transform: rotate(25deg)
+  }
 }
+  
