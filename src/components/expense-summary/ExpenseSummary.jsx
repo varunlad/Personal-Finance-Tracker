@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import CategoryChartSwitcher from "./CategoryChartSwitcher";
 import "./expenseSummary.css";
@@ -66,19 +65,23 @@ export default function ExpenseSummary({
   const [error, setError] = useState("");
 
   // Loader & gating
-  const [fetching, setFetching] = useState(false);    // shows the spinner
+  const [fetching, setFetching] = useState(false); // shows the spinner
   const [contentReady, setContentReady] = useState(false); // gates chart render
 
   function onPendingStartChange(e) {
     const next = parseInputDate(e.target.value);
     setPendingStart(next);
-    setError(next > pendingEnd ? "Start date cannot be later than end date." : "");
+    setError(
+      next > pendingEnd ? "Start date cannot be later than end date." : ""
+    );
   }
 
   function onPendingEndChange(e) {
     const next = parseInputDate(e.target.value);
     setPendingEnd(next);
-    setError(pendingStart > next ? "End date cannot be earlier than start date." : "");
+    setError(
+      pendingStart > next ? "End date cannot be earlier than start date." : ""
+    );
   }
 
   async function handleApply() {
@@ -88,10 +91,16 @@ export default function ExpenseSummary({
     }
     // Clamp once for safety against input bounds
     const start = new Date(
-      Math.max(minDate.getTime(), Math.min(pendingStart.getTime(), maxDate.getTime()))
+      Math.max(
+        minDate.getTime(),
+        Math.min(pendingStart.getTime(), maxDate.getTime())
+      )
     );
     const end = new Date(
-      Math.max(minDate.getTime(), Math.min(pendingEnd.getTime(), maxDate.getTime()))
+      Math.max(
+        minDate.getTime(),
+        Math.min(pendingEnd.getTime(), maxDate.getTime())
+      )
     );
 
     setAppliedStart(start);
@@ -111,7 +120,11 @@ export default function ExpenseSummary({
     try {
       const startStr = toYMD(start);
       const endStr = toYMD(end);
-      const data = await listRangeExpenses({ start: startStr, end: endStr, token });
+      const data = await listRangeExpenses({
+        start: startStr,
+        end: endStr,
+        token,
+      });
       const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
       setRangeGroups(sorted);
 
@@ -143,7 +156,11 @@ export default function ExpenseSummary({
     async function fetchYTD() {
       // Build YTD range
       const start = new Date(today.getFullYear(), 0, 1);
-      const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const end = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
+      );
 
       setAppliedStart(start);
       setAppliedEnd(end);
@@ -161,7 +178,11 @@ export default function ExpenseSummary({
       try {
         const startStr = toYMD(start);
         const endStr = toYMD(end);
-        const data = await listRangeExpenses({ start: startStr, end: endStr, token });
+        const data = await listRangeExpenses({
+          start: startStr,
+          end: endStr,
+          token,
+        });
         const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
         if (!cancelled) setRangeGroups(sorted);
 
@@ -175,7 +196,9 @@ export default function ExpenseSummary({
         }, remaining);
       } catch (err) {
         if (!cancelled) {
-          setError(err.message || "Failed to fetch current year-to-date summary");
+          setError(
+            err.message || "Failed to fetch current year-to-date summary"
+          );
           setRangeGroups([]);
         }
 
@@ -301,12 +324,12 @@ export default function ExpenseSummary({
             values={values}
             totalVal={total}
             colors={[
-              "#0984E3",
-              "#114e08ff",
-              "#df0ccdff",
-              "#0bbd4fff",
-              "#D63031",
-              "#e05e08ff",
+              "#53A9EB",
+              "#588352FF",
+              "#E955DCFF",
+              "#54D184FF",
+              "#E26E6F",
+              "#E98E52FF",
             ]}
             themeMode={isDark ? "dark" : "light"}
             currencySymbol="₹"

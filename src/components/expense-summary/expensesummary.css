@@ -80,7 +80,7 @@ input[type="date"]:focus {
 .btn[disabled] { opacity: 0.55; cursor: not-allowed; box-shadow: none; transform: none; }
 
 .summary-loader{
-    display: flex; justify-content: center; padding: 12px;
+    display: flex; justify-content: center; padding: 12px; padding-bottom: 0px;
 }
 
 /* Chart surface */

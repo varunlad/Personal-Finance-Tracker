@@ -1,10 +1,11 @@
 
 // src/components/loader/Loader.jsx
 import { useEffect, useRef, useState } from "react";
-import "./Loader.css";
+import "./loader.css";
 
 /**
- * Smooth Loader with fade-in/out and minimum visibility window.
+ * Smooth Loader (Uiverse triple-loader variant) with fade-in/out
+ * and minimum visibility window.
  *
  * Props:
  *  - visible: boolean (required)
@@ -37,27 +38,22 @@ export default function Loader({
   }, []);
 
   useEffect(() => {
-    // When visible becomes true → mount after enterDelay and fade in
     if (visible) {
       clearTimeout(unmountTimerRef.current);
 
-      // If already rendering, just ensure 'show' is true
       if (shouldRender) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setShow(true);
         return;
       }
 
-      // Delay to avoid ultra-fast flicker
+      // Delay to avoid flicker for ultra-fast operations
       appearTimerRef.current = setTimeout(() => {
         setShouldRender(true);
         mountedAtRef.current = Date.now();
-
-        // Next frame → set show=true to trigger CSS transition
         requestAnimationFrame(() => setShow(true));
       }, enterDelay);
     } else {
-      // visible became false → fade out, but respect minDuration
       clearTimeout(appearTimerRef.current);
 
       const elapsed = Date.now() - mountedAtRef.current;
@@ -65,11 +61,9 @@ export default function Loader({
 
       // Wait remaining minDuration before starting fade-out
       minTimerRef.current = setTimeout(() => {
-        // trigger fade-out
         setShow(false);
 
-        // after CSS transition duration, unmount
-        // keep in sync with CSS --transition-duration (300ms)
+        // Keep this in sync with CSS --transition-duration
         const TRANSITION_MS = 300;
         unmountTimerRef.current = setTimeout(() => {
           setShouldRender(false);
@@ -87,12 +81,14 @@ export default function Loader({
       aria-busy={show}
       role="status"
     >
-      {/* spinner box */}
-      <div className="loader">
-        {/* Decorative spinner uses ::before/::after from CSS */}
+      {/* Uiverse triple-loader structure */}
+      <div className="container" aria-hidden="true">
+        <div className="loader" />
+        <div className="loader" />
+        <div className="loader" />
       </div>
 
-      {/* Accessible label (optional) */}
+      {/* Accessible label (screen readers) */}
       <span className="loader-label">{label}</span>
     </div>
   );
