@@ -8,12 +8,16 @@ import SummaryCards from "./SummaryCards.jsx"
 import DayTable from "./DayTable.jsx"
 import EditorModal from "./EditorModal.jsx"
 
+// API: we'll always use upsert to avoid dupes and keep logic simple
+import { upsertDayExpenses } from "../../api/expenses"
+
 export default function ExpenseAnalysis({
   dayGroups = [],
   currency = "RS",
   initialYear,
   initialMonth,
   onUpdateDayGroups,
+  token, // 🔒 auth token passed from parent
 }) {
   const pad2 = (n) => String(n).padStart(2, "0")
 
@@ -154,17 +158,22 @@ export default function ExpenseAnalysis({
   const [editRows, setEditRows] = useState([])
   const [pendingDeleteIds, setPendingDeleteIds] = useState(new Set())
 
+  // saving state
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState("")
+
   function openEditor(dayNum) {
     if (!canEditDay(year, month, dayNum)) return
     const dateStr = toYMD(year, month, dayNum)
     const group = dayGroups.find((g) => g.date === dateStr)
     const rows = []
 
+    // hydrate editor rows from existing group
     if (group && Array.isArray(group.items)) {
       for (const it of group.items) {
         rows.push({
-          id: cryptoRandomId(),
-          expenseId: it.id,
+          id: cryptoRandomId(),          // local row id
+          expenseId: it.id,              // server doc id
           amount: Number(it.amount) || 0,
           category: normalizeCat(it.category),
           isNew: false,
@@ -175,12 +184,16 @@ export default function ExpenseAnalysis({
     setEditingDay(dayNum)
     setEditRows(rows)
     setPendingDeleteIds(new Set())
+    setSaveError("")
+    setSaving(false)
   }
 
   function closeEditor() {
     setEditingDay(null)
     setEditRows([])
     setPendingDeleteIds(new Set())
+    setSaveError("")
+    setSaving(false)
   }
 
   function addRow() {
@@ -204,44 +217,88 @@ export default function ExpenseAnalysis({
     })
   }
 
+  /**
+   * Save changes:
+   *  - Coalesce by category => one item per category
+   *  - Prefer updating ONE existing item id per category; others implicitly deleted
+   *  - Always call upsertDayExpenses so server replaces the entire day atomically
+   */
   function saveChanges() {
-    if (!onUpdateDayGroups) {
-      console.warn("onUpdateDayGroups is not provided. Changes will not persist.")
-      closeEditor()
-      return
-    }
+    if (saving) return
+    if (editingDay === null) return
 
-    const dateStr = toYMD(year, month, editingDay)
-    const nextGroups = dayGroups.slice()
-    const idx = nextGroups.findIndex((g) => g.date === dateStr)
-
-    const nextItems = []
-    for (const r of editRows) {
-      const isDelete = pendingDeleteIds.has(r.id)
-      if (isDelete) continue
-
-      const amt = Number(r.amount) || 0
-      const cat = normalizeCat(r.category)
-
-      if (r.expenseId) {
-        nextItems.push({ id: r.expenseId, amount: amt, category: cat })
-      } else {
-        nextItems.push({ id: cryptoRandomId(), amount: amt, category: cat })
+    ;(async () => {
+      if (!token) {
+        setSaveError("You are not logged in.")
+        return
       }
-    }
+      if (!onUpdateDayGroups) {
+        console.warn("onUpdateDayGroups is not provided. Changes will not persist.")
+        closeEditor()
+        return
+      }
 
-    const newTotal = nextItems.reduce((s, it) => s + (Number(it.amount) || 0), 0)
+      setSaving(true)
+      setSaveError("")
+      const dateStr = toYMD(year, month, editingDay)
 
-    if (nextItems.length === 0) {
-      if (idx >= 0) nextGroups.splice(idx, 1)
-    } else {
-      const updated = { date: dateStr, items: nextItems, total: newTotal }
-      if (idx >= 0) nextGroups[idx] = updated
-      else nextGroups.push(updated)
-    }
+      try {
+        // 1) Remove rows flagged for deletion
+        const nonDeleted = editRows.filter(r => !pendingDeleteIds.has(r.id))
 
-    onUpdateDayGroups(nextGroups) // parent merges month into summary + sets month view
-    closeEditor()
+        // 2) Coalesce by category: sum amounts, track existing ids
+        //    buckets: cat -> { total, existingIds[] }
+        const buckets = new Map()
+        for (const r of nonDeleted) {
+          const cat = normalizeCat(r.category)
+          const amt = Number(r.amount) || 0
+          if (amt <= 0) continue // ignore zero/negative entries
+          if (!buckets.has(cat)) {
+            buckets.set(cat, { total: 0, existingIds: [] })
+          }
+          const b = buckets.get(cat)
+          b.total += amt
+          if (!r.isNew && r.expenseId) b.existingIds.push(r.expenseId)
+        }
+
+        // 3) Build final items: one per category
+        const items = []
+        for (const [cat, b] of buckets) {
+          if (b.total <= 0) continue
+          if (b.existingIds.length > 0) {
+            // Pick first existing id to keep; server will delete omitted ones
+            items.push({
+              id: b.existingIds[0],
+              amount: b.total,
+              category: cat,
+            })
+          } else {
+            // no existing id -> create new one on server
+            items.push({
+              amount: b.total,
+              category: cat,
+            })
+          }
+        }
+
+        // 4) Send to server (atomic replace for the day)
+        const upsertResp = await upsertDayExpenses({
+          date: dateStr,
+          items, // coalesced; at most one per category
+          token,
+        })
+
+        // Server: { message, day, month: [ ...month groups ] }
+        const updatedMonthGroups = upsertResp?.month ?? []
+        onUpdateDayGroups(updatedMonthGroups)
+        closeEditor()
+      } catch (e) {
+        console.error("Save failed:", e)
+        setSaveError(e?.message || "Failed to save changes")
+      } finally {
+        setSaving(false)
+      }
+    })()
   }
 
   useEffect(() => {
@@ -290,6 +347,11 @@ export default function ExpenseAnalysis({
     other: pct(monthByCategory.other, monthTotal),
   }
 
+  // Optional: log save errors
+  useEffect(() => {
+    if (saveError) console.warn("ExpenseAnalysis saveError:", saveError)
+  }, [saveError])
+
   return (
     <section className="card">
       <HeaderControls
@@ -330,7 +392,7 @@ export default function ExpenseAnalysis({
         addRow={addRow}
         updateRow={updateRow}
         toggleDelete={toggleDelete}
-        saveChanges={saveChanges}
+        saveChanges={saving ? undefined : saveChanges} // guard
         closeEditor={closeEditor}
         toYMD={toYMD}
         year={year}

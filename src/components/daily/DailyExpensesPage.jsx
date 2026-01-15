@@ -126,6 +126,7 @@ export default function DailyExpensesPage() {
         initialYear={year}
         initialMonth={month}
         onUpdateDayGroups={handleUpdateMonthGroups}
+        token={token}
       />
     </>
   );
