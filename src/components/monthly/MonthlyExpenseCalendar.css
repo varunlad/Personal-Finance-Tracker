@@ -1,6 +1,6 @@
-/* ============ Monthly Expense Calendar Styles ============ */
 
-/* Header (month & year with navigation arrows) */
+/* ============ Header ============ */
+
 .cal-header {
   display: flex;
   align-items: center;
@@ -17,7 +17,8 @@
   cursor: not-allowed;
 }
 
-/* Weekday labels row */
+/* ============ Weekday Labels ============ */
+
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -32,13 +33,14 @@
   color: var(--muted);
 }
 
-/* Days grid: use minmax to avoid overflow/overlap */
+/* ============ Days Grid ============ */
+/* Allow rows to grow when there are many badges */
 .cal-days {
-  /* On desktop/tablet: fixed-ish height */
-  grid-auto-rows: 90px;
+  grid-auto-rows: minmax(90px, auto);
 }
 
-/* Day cells */
+/* ============ Day Cells ============ */
+
 .cal-cell {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -47,34 +49,40 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-
-  /* Prevent content bleeding into next row */
   overflow: hidden;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 
-  transition: background 0.2s ease, border-color 0.2s ease;
+  /* avoid odd native outlines in some browsers */
+  appearance: none;
+  -webkit-appearance: none;
 }
 .cal-cell:hover {
   border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
   background: color-mix(in srgb, var(--primary) 8%, var(--card));
 }
+.cal-cell:focus { outline: none; }
+.cal-cell:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 60%, #ffffff);
+  outline-offset: 2px;
+}
 
-/* Empty placeholders before/after the month */
+.cal-clickable {
+  cursor: pointer;
+}
+
 .cal-empty {
   background: transparent;
   border: none;
 }
-.cal-empty:hover{
-  background: none;
-}
 
-/* Day number + amount */
+/* Day number + total */
+
 .cal-daynum {
   font-weight: 600;
   color: var(--text);
-  line-height: 1; /* keep compact */
+  line-height: 1;
 }
 
-/* Keep the amount on one line; truncate if too long */
 .cal-amount {
   font-size: 13px;
   color: var(--text);
@@ -83,55 +91,129 @@
   border-radius: 6px;
   padding: 4px 6px;
   width: fit-content;
-
-  white-space: nowrap; /* avoid wrapping */
-  text-overflow: ellipsis; /* show ellipsis if too long */
+  white-space: nowrap;
+  text-overflow: ellipsis;
   overflow: hidden;
 }
+
+/* Subtle emphasis for days that have any expense (no layout shift) */
 .has-expense {
-  outline: 2px solid color-mix(in srgb, var(--primary) 20%, transparent);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
 }
 
-/* Dim and disable future dates */
+/* ============ Future Dates ============ */
+
 .cal-future {
   opacity: 0.55;
   cursor: not-allowed;
 }
 .cal-future.has-expense .cal-amount {
-  /* keep badge readable but subdued */
   opacity: 0.8;
 }
 
-/* =================== Responsive tweaks =================== */
+/* ============ Top 3 Expensive Days ============ */
 
-/* <= 900px: slightly smaller rows */
+.cal-cell.cal-top-expense {
+  border: 2px solid #ff4d4f;
+  box-shadow: inset 0 0 0 2px rgba(255, 77, 79, 0.2);
+}
+
+/* ============ Category Badges (Desktop) ============ */
+
+.cal-catrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.cal-cat-badge {
+  min-width: 28px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #0b0b0b;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+
+.cal-cat-amt {
+  white-space: nowrap;
+}
+
+.cal-cat-badge.cal-cat-more {
+  background: var(--muted);
+  color: var(--text);
+}
+
+/* ============ Modal Items ============ */
+
+.item-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.item-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.item-category {
+  flex: 1 1 auto;
+}
+.item-amount {
+  font-weight: 600;
+}
+
+/* ============ Responsive ============ */
+
 @media (max-width: 900px) {
   .cal-days {
     grid-auto-rows: minmax(80px, auto);
   }
 }
 
-/* <= 640px: mobile — let rows grow if content needs it */
 @media (max-width: 640px) {
   .cal-grid {
     gap: 4px;
-  } /* tighter gaps */
+  }
   .cal-weekcell {
     font-size: 11px;
-  } /* smaller weekday labels */
+  }
   .cal-days {
     grid-auto-rows: minmax(72px, auto);
-  } /* flex height */
-
+  }
   .cal-cell {
     padding: 6px;
     gap: 4px;
-  } /* tighter padding */
+  }
   .cal-daynum {
     font-size: 13px;
-  } /* smaller numbers */
+  }
   .cal-amount {
     font-size: 12px;
     padding: 3px 6px;
-  } /* compact badge */
+    display: none !important; /* hide day total on mobile */
+  }
+
+  /* Mobile badges = dots only */
+  .cal-cat-badge {
+    width: 10px;
+    min-width: 10px;
+    height: 10px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .cal-cat-amt {
+    display: none;
+  }
+  .cal-cat-badge.cal-cat-more{
+    background: transparent;
+  }
 }

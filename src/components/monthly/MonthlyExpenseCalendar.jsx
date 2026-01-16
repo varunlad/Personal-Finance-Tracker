@@ -1,5 +1,4 @@
 
-// src/components/monthly/MonthlyExpenseCalendar.jsx
 import { useMemo, useState, useEffect } from 'react'
 import './MonthlyExpenseCalendar.css'
 import Modal from '../modal/Modal'
@@ -47,6 +46,28 @@ export default function MonthlyExpenseCalendar({
     ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
+  // --- Category normalization & colors (keep consistent with app-wide mapping) ---
+  const normalizeCat = (c) => {
+    const s = String(c || 'other').toLowerCase()
+    if (s.includes('mutual')) return 'mutualFund'
+    if (s.includes('stock')) return 'stock'
+    if (s.includes('shop')) return 'shopping'
+    if (s.includes('groc')) return 'grocery'
+    if (s.includes('rent') || s.includes('bill')) return 'rentBills'
+    return 'other'
+  }
+
+  const CATEGORY_COLORS = {
+    mutualFund: '#53A9EB',
+    stock: '#588352FF',
+    shopping: '#E955DCFF',
+    grocery: '#54D184FF',
+    other: '#E26E6F',
+    rentBills: '#E98E52FF',
+  }
+
+  const getCategoryColor = (catKey) => CATEGORY_COLORS[catKey] || '#999'
+
   // Build totals & items per day from grouped data
   const { totalsByDay, itemsByDay } = useMemo(() => {
     const totals = new Map()
@@ -54,9 +75,10 @@ export default function MonthlyExpenseCalendar({
     for (const g of dayGroups) {
       const [y, m, d] = g.date.split('-').map(Number)
       if (y === year && m === month) {
-        const total = typeof g.total === 'number'
-          ? g.total
-          : (g.items || []).reduce((s, it) => s + (Number(it.amount) || 0), 0)
+        const total =
+          typeof g.total === 'number'
+            ? g.total
+            : (g.items || []).reduce((s, it) => s + (Number(it.amount) || 0), 0)
 
         totals.set(d, (totals.get(d) || 0) + total)
         const arr = items.get(d) || []
@@ -66,6 +88,32 @@ export default function MonthlyExpenseCalendar({
     }
     return { totalsByDay: totals, itemsByDay: items }
   }, [dayGroups, year, month])
+
+  // Per-day totals by category (sum items for the day by category)
+  const categoryTotalsByDay = useMemo(() => {
+    const map = new Map() // dayNum -> Array<{category, total}>
+    for (const [dayNum, items] of itemsByDay.entries()) {
+      const acc = new Map() // catKey -> total
+      for (const it of items) {
+        const key = normalizeCat(it.category)
+        const amt = Number(it.amount) || 0
+        acc.set(key, (acc.get(key) || 0) + amt)
+      }
+      const arr = Array.from(acc.entries())
+        .map(([category, total]) => ({ category, total }))
+        .sort((a, b) => b.total - a.total) // largest first
+      map.set(dayNum, arr)
+    }
+    return map
+  }, [itemsByDay])
+
+  // Top 3 most expensive days in the month (by total)
+  const top3Days = useMemo(() => {
+    return Array.from(totalsByDay.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([dayNum]) => dayNum)
+  }, [totalsByDay])
 
   // Calendar cells (6 rows * 7 cols = 42)
   const cells = useMemo(() => {
@@ -172,21 +220,62 @@ export default function MonthlyExpenseCalendar({
           }
           const total = totalsByDay.get(dayNum) || 0
           const clickable = total > 0
+          const isTop = top3Days.includes(dayNum)
+          const catTotals = categoryTotalsByDay.get(dayNum) || []
+
+          // Limit badges; show +N if too many
+          const MAX_BADGES = 3
+          const visibleBadges = catTotals.slice(0, MAX_BADGES)
+          const overflowCount = Math.max(0, catTotals.length - MAX_BADGES)
+
+          const showCatRow = visibleBadges.length > 0
+
+          // a11y category summary
+          const catSummary =
+            visibleBadges
+              .map(ct => `${ct.category} ${fmtAmount(ct.total)}`)
+              .join(', ') + (overflowCount ? `, +${overflowCount} more` : '')
+
           return (
             <button
               key={`day-${dayNum}-${idx}`}
               type="button"
-              className={`cal-cell ${total > 0 ? 'has-expense' : ''} ${clickable ? 'cal-clickable' : ''}`}
+              className={`cal-cell ${total > 0 ? 'has-expense' : ''} ${clickable ? 'cal-clickable' : ''} ${isTop ? 'cal-top-expense' : ''}`}
               onClick={() => clickable && onDayClick(dayNum)}
               aria-label={
                 clickable
-                  ? `Open details for ${year}-${String(month).padStart(2,'0')}-${String(dayNum).padStart(2,'0')} with total ${fmtAmount(total)}`
+                  ? `Open details for ${year}-${String(month).padStart(2,'0')}-${String(dayNum).padStart(2,'0')} with total ${fmtAmount(total)}. Categories: ${catSummary}`
                   : `No expenses on ${year}-${String(month).padStart(2,'0')}-${String(dayNum).padStart(2,'0')}`
               }
               disabled={!clickable}
             >
               <div className="cal-daynum">{dayNum}</div>
+
+              {/* Desktop-only via CSS (hidden on mobile) */}
               {total > 0 && <div className="cal-amount">{fmtAmount(total)}</div>}
+
+              {showCatRow && (
+                <div className="cal-catrow" aria-hidden="true">
+                  {visibleBadges.map((ct, i) => (
+                    <div
+                      key={`badge-${dayNum}-${ct.category}-${i}`}
+                      className="cal-cat-badge"
+                      style={{ backgroundColor: getCategoryColor(ct.category) }}
+                      title={`${ct.category}: ${fmtAmount(ct.total)}`}
+                    >
+                      <span className="cal-cat-amt">{fmtAmount(ct.total)}</span>
+                    </div>
+                  ))}
+                  {overflowCount > 0 && (
+                    <div
+                      className="cal-cat-badge cal-cat-more"
+                      title={`+${overflowCount} more categories`}
+                    >
+                      +{overflowCount}
+                    </div>
+                  )}
+                </div>
+              )}
             </button>
           )
         })}
@@ -201,14 +290,22 @@ export default function MonthlyExpenseCalendar({
         </div>
         {selectedItems.length > 0 ? (
           <ul className="modal-list">
-            {selectedItems.map((item, i) => (
-              <li key={`exp-${item.id || i}`} className="modal-list-item">
-                <div className="item-line">
-                  <span className="item-date">{item.category || 'other'}</span>
-                  <span className="item-amount">{fmtAmount(item.amount)}</span>
-                </div>
-              </li>
-            ))}
+            {selectedItems.map((item, i) => {
+              const key = normalizeCat(item.category)
+              return (
+                <li key={`exp-${item.id || i}`} className="modal-list-item">
+                  <div className="item-line">
+                    <span
+                      className="item-dot"
+                      style={{ backgroundColor: getCategoryColor(key) }}
+                      aria-hidden="true"
+                    />
+                    <span className="item-category">{key}</span>
+                    <span className="item-amount">{fmtAmount(item.amount)}</span>
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         ) : (
           <p className="muted">No entries for this day.</p>
@@ -235,4 +332,3 @@ function isAfter(a, b) {
 }
 function isBeforeOrEqual(a, b) { return !isAfter(a, b) }
 function isAfterOrEqual(a, b) { return !isBefore(a, b) }
-``

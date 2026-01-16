@@ -84,12 +84,31 @@
 .ea-bar-fill {
   height: 100%;
 }
-.ea-bar-fill.mf { background: #6a5acd; } /* slate blue */
-.ea-bar-fill.stock { background: #2e8b57; } /* sea green */
-.ea-bar-fill.shopping { background: #e22bd9; } /* magenta */
-.ea-bar-fill.grocery { background: #ff8c00; } /* dark orange */
-.ea-bar-fill.other { background: #cd5c5c; } /* indian red */
-.ea-bar-fill.rentBills { background: #5aa1ff; } /* soft blue */
+
+.ea-bar-fill.mf { 
+  background: #53A9EB; 
+}
+
+.ea-bar-fill.stock { 
+  background: #588352FF; 
+}
+
+.ea-bar-fill.shopping { 
+  background: #E955DCFF; 
+}
+
+.ea-bar-fill.grocery { 
+  background: #54D184FF; 
+}
+
+.ea-bar-fill.other { 
+  background: #E26E6F; 
+}
+
+.ea-bar-fill.rentBills { 
+  background: #E98E52FF; 
+}
+
 
 /* ================= Table ================= */
 .ea-table-wrap {

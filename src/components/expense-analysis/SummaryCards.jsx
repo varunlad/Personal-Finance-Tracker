@@ -14,7 +14,7 @@ export default function SummaryCards({ fmtAmount, monthTotal, catPct, monthByCat
         amount={fmtAmount(monthByCategory.mutualFund)} barClass="mf"
         info="Investments into mutual fund schemes (SIP/lump sum)." />
 
-      <CategoryCard title="Stock Invested" percent={catPct.stock}
+      <CategoryCard title="Stocks" percent={catPct.stock}
         amount={fmtAmount(monthByCategory.stock)} barClass="stock"
         info="Direct equity shares or ETFs purchased." />
 
