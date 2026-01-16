@@ -44,7 +44,7 @@ export default function ExpenseAnalysis({
 
   const CATEGORY_OPTIONS = [
     { value: "mutualFund", label: "Mutual Fund" },
-    { value: "stock", label: "Stock Invested" },
+    { value: "stock", label: "Stocks" },
     { value: "shopping", label: "Shopping" },
     { value: "grocery", label: "Grocery" },
     { value: "rentBills", label: "Rent/Bills" },

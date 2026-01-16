@@ -10,7 +10,7 @@ export default function DayTable({
             <th className="ea-sticky-day">Day</th>
             <th>Total</th>
             <th>Mutual Fund</th>
-            <th>Stock Invested</th>
+            <th>Stocks</th>
             <th>Shopping</th>
             <th>Grocery</th>
             <th>Rent/Bills</th>
