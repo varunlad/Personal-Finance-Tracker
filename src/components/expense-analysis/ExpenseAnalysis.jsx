@@ -1,5 +1,4 @@
 
-// src/components/expense-analysis/ExpenseAnalysis.jsx
 import { useMemo, useState, useEffect } from "react"
 import "./ExpenseAnalysis.css"
 
@@ -8,7 +7,7 @@ import SummaryCards from "./SummaryCards.jsx"
 import DayTable from "./DayTable.jsx"
 import EditorModal from "./EditorModal.jsx"
 
-// API: we'll always use upsert to avoid dupes and keep logic simple
+// API: always use upsert to keep one row/category and avoid duplicates
 import { upsertDayExpenses } from "../../api/expenses"
 
 export default function ExpenseAnalysis({
@@ -218,6 +217,38 @@ export default function ExpenseAnalysis({
   }
 
   /**
+   * Utility: coalesce editor rows by category (max one item/category).
+   * - Sums amounts per category
+   * - Prefers keeping ONE existing expenseId per category
+   * - Skips zero/negative amounts
+   */
+  function buildCoalescedItemsFromEditor(rows, deletesSet) {
+    const nonDeleted = rows.filter(r => !deletesSet.has(r.id))
+    const buckets = new Map() // cat -> { total, existingIds[] }
+
+    for (const r of nonDeleted) {
+      const cat = normalizeCat(r.category)
+      const amt = Number(r.amount) || 0
+      if (amt <= 0) continue
+      if (!buckets.has(cat)) buckets.set(cat, { total: 0, existingIds: [] })
+      const b = buckets.get(cat)
+      b.total += amt
+      if (!r.isNew && r.expenseId) b.existingIds.push(r.expenseId)
+    }
+
+    const items = []
+    for (const [cat, b] of buckets) {
+      if (b.total <= 0) continue
+      if (b.existingIds.length > 0) {
+        items.push({ id: b.existingIds[0], amount: b.total, category: cat })
+      } else {
+        items.push({ amount: b.total, category: cat })
+      }
+    }
+    return items
+  }
+
+  /**
    * Save changes:
    *  - Coalesce by category => one item per category
    *  - Prefer updating ONE existing item id per category; others implicitly deleted
@@ -243,45 +274,8 @@ export default function ExpenseAnalysis({
       const dateStr = toYMD(year, month, editingDay)
 
       try {
-        // 1) Remove rows flagged for deletion
-        const nonDeleted = editRows.filter(r => !pendingDeleteIds.has(r.id))
+        const items = buildCoalescedItemsFromEditor(editRows, pendingDeleteIds)
 
-        // 2) Coalesce by category: sum amounts, track existing ids
-        //    buckets: cat -> { total, existingIds[] }
-        const buckets = new Map()
-        for (const r of nonDeleted) {
-          const cat = normalizeCat(r.category)
-          const amt = Number(r.amount) || 0
-          if (amt <= 0) continue // ignore zero/negative entries
-          if (!buckets.has(cat)) {
-            buckets.set(cat, { total: 0, existingIds: [] })
-          }
-          const b = buckets.get(cat)
-          b.total += amt
-          if (!r.isNew && r.expenseId) b.existingIds.push(r.expenseId)
-        }
-
-        // 3) Build final items: one per category
-        const items = []
-        for (const [cat, b] of buckets) {
-          if (b.total <= 0) continue
-          if (b.existingIds.length > 0) {
-            // Pick first existing id to keep; server will delete omitted ones
-            items.push({
-              id: b.existingIds[0],
-              amount: b.total,
-              category: cat,
-            })
-          } else {
-            // no existing id -> create new one on server
-            items.push({
-              amount: b.total,
-              category: cat,
-            })
-          }
-        }
-
-        // 4) Send to server (atomic replace for the day)
         const upsertResp = await upsertDayExpenses({
           date: dateStr,
           items, // coalesced; at most one per category

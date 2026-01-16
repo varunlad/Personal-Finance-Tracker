@@ -1,5 +1,4 @@
 
-// src/components/expense-analysis/EditorModal.jsx
 export default function EditorModal({
   editingDay,
   categoryOptions,
@@ -58,14 +57,14 @@ export default function EditorModal({
               <tr>
                 <th>Category</th>
                 <th style={{ width: 140 }}>Amount</th>
-                <th style={{ width: 90 }}>Delete</th>
+                <th style={{ width: 120 }}>Delete</th>
               </tr>
             </thead>
             <tbody>
               {editRows.length === 0 && (
                 <tr>
                   <td colSpan={3} className="muted">
-                    No entries yet. Click “Add row”.
+                    No expense yet. Click 'Add row'.
                   </td>
                 </tr>
               )}
@@ -91,6 +90,7 @@ export default function EditorModal({
                     </td>
                     <td>
                       <input
+                      id="amount_input"
                         type="number"
                         min="0"
                         step="1"
@@ -145,4 +145,3 @@ export default function EditorModal({
     </div>
   )
 }
-
