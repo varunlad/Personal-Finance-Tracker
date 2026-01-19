@@ -18,7 +18,7 @@ export default function Loader({
   visible,
   minDuration = 450,
   enterDelay = 120,
-  label = "Loading…",
+  label = "",
   className = "",
 }) {
   const [shouldRender, setShouldRender] = useState(false); // mounted?

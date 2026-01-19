@@ -4,7 +4,7 @@
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 18px;
+  padding: 12px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.10);
   transition: box-shadow 200ms ease, transform 180ms ease;
   min-height: 500px;
@@ -42,7 +42,7 @@
 
 /* Inputs */
 input[type="date"] {
-  padding: 10px 12px;
+  padding: 7px 10px;
   border: 1px solid var(--border);
   background: var(--card);
   color: var(--text);
@@ -64,7 +64,7 @@ input[type="date"]:focus {
 .btn-row,
 .date-actions { display: inline-flex; gap: 10px; align-items: center; }
 .btn {
-  padding: 10px 14px;
+  padding: 7px 12px;
   border: 1px solid var(--border);
   background: rgba(148, 163, 184, 0.12); /* soft blend */
   color: var(--text);
@@ -86,38 +86,96 @@ input[type="date"]:focus {
 /* Chart surface */
 
 
+
+/* ================= Segmented Control (Pill Switch) ================= */
 .segmented {
+  --seg-bg: color-mix(in srgb, var(--card, #fff) 85%, transparent);
+  --seg-border: color-mix(in srgb, var(--border, #d1d5db) 100%, transparent);
+  --seg-fg: var(--text, #111827);
+  --seg-muted: var(--muted, #6b7280);
+
+  /* Active colors (inherits your --primary if defined) */
+  --seg-active-bg: var(--primary, #3b82f6);
+  --seg-active-fg: var(--primary-contrast, #ffffff);
+
   display: inline-flex;
-  gap: 0; /* no gaps, seamless buttons */
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--surface, #f3f4f6); /* fallback light gray */
-  border: 1px solid var(--border, #d1d5db);
+  align-items: center;
+  gap: 6px;                 /* subtle spacing between pills */
+  padding: 4px;             /* inner padding creates the pill rail */
+  border-radius: 12px;      /* pill */
+  background: var(--seg-bg);
+  border: 1px solid var(--seg-border);
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.04),
+    0 2px 8px rgba(0,0,0,0.03);
+  backdrop-filter: saturate(120%) blur(2px);
 }
 
 .seg {
-  flex: 1;
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 600;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
   background: transparent;
-  color: var(--border);
-  border: none;
+  color: var(--seg-muted);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: .2px;
+  padding: 8px 14px;
+  border-radius: 10px;      /* individual segment rounding */
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  line-height: 1;
+  transition:
+    color .18s ease,
+    background .18s ease,
+    box-shadow .18s ease,
+    transform .04s ease;
+  outline: none;
 }
 
 .seg:hover {
-  background: rgba(0, 0, 0, 0.06); /* subtle hover */
+  background: color-mix(in srgb, var(--primary, #3b82f6) 8%, transparent);
+  color: var(--seg-fg);
 }
 
+.seg:active {
+  transform: translateY(0.5px);
+}
+
+/* Active state — solid pill with soft shadow */
 .seg.active {
-  background: var(--primary, #3b82f6);
-  color: #fff;
+  background: var(--seg-active-bg);
+  color: var(--seg-active-fg);
+  box-shadow:
+    0 6px 16px color-mix(in srgb, var(--seg-active-bg) 30%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, #000 10%, transparent);
 }
 
-.seg + .seg {
-  border-left: 1px solid var(--border, #d1d5db);
+/* Keyboard accessibility */
+.seg:focus-visible {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--seg-active-bg) 40%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--seg-active-bg) 20%, transparent);
+}
+
+/* Optional: make the non-active segment text crisper on dark backgrounds */
+.theme-dark .segmented {
+  --seg-bg: color-mix(in srgb, var(--surface, #111827) 70%, transparent);
+  --seg-border: color-mix(in srgb, var(--border, #2d3340) 100%, transparent);
+  --seg-fg: var(--text, #e5e7eb);
+  --seg-muted: color-mix(in srgb, var(--text, #e5e7eb) 70%, transparent);
+}
+
+@media (max-width: 480px) {
+  .segmented {
+    gap: 4px;
+    padding: 3px;
+    border-radius: 10px;
+  }
+  .seg {
+    font-size: 13px;
+    padding: 7px 12px;
+    border-radius: 8px;
+  }
 }
 
 

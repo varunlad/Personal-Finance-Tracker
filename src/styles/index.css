@@ -75,7 +75,7 @@ p, span, li, label {
 .app-header {
   display: flex;
   align-items: center;
-  padding: 16px 24px;
+  padding: 10px 15px;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -90,6 +90,9 @@ p, span, li, label {
 .app-header .spacer {
   flex: 1;
 }
+.app-logo{
+  width: 50px;
+}
 
 /* Layout */
 .container {
@@ -103,7 +106,7 @@ p, span, li, label {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 16px;
+  padding: 10px;
   margin: 12px 0;
 }
 
@@ -112,7 +115,7 @@ p, span, li, label {
   background: var(--primary);
   color: #fff;
   border: none;
-  padding: 8px 12px;
+  padding: 7px 12px;
   border-radius: 8px;
   cursor: pointer;
 }

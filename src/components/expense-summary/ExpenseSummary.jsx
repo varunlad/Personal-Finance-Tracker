@@ -270,7 +270,7 @@ export default function ExpenseSummary({
             disabled={!!error || fetching}
             aria-label="Apply selected date range"
           >
-            {fetching ? "Loading..." : "Apply"}
+            {fetching ? "..." : "Apply"}
           </button>
         </div>
       </div>
