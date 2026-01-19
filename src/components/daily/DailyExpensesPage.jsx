@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import MonthlyExpenseCalendar from "../monthly/MonthlyExpenseCalendar";
 import ExpenseAnalysis from "../expense-analysis/ExpenseAnalysis";
@@ -35,24 +36,20 @@ export default function DailyExpensesPage() {
       setError("");
       try {
         if (!token) {
-          // If user isn’t logged in yet, show empty month view.
           if (!cancelled) setMonthViewGroups([]);
           return;
         }
-
         const data = await listMonthExpenses({ month, year, token });
         const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date));
         if (!cancelled) {
           setMonthViewGroups(sorted);
-
-          // OPTIONAL: Initialize the summary baseline the first time
           if (summaryDayGroups.length === 0) {
-            setSummaryDayGroups(sorted); // or keep empty until edits
+            setSummaryDayGroups(sorted);
           }
         }
       } catch (err) {
         if (!cancelled) {
-          setMonthViewGroups([]); // show empty state
+          setMonthViewGroups([]);
           setError(err.message || "Failed to load expenses");
         }
       } finally {
@@ -103,7 +100,7 @@ export default function DailyExpensesPage() {
 
       <ExpenseSummary
         dayGroups={summaryDayGroups}
-        minSelectableDate={new Date(1990, 0, 1)} // optional
+        minSelectableDate={new Date(1990, 0, 1)}
       />
 
       <MonthlyExpenseCalendar
