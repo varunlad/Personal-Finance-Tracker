@@ -1,9 +1,9 @@
 
-import { useTheme } from '../../context/theme-context'
+// import { useTheme } from '../../context/theme-context'
 import { useAuth } from '../../context/auth-context'
 
 export default function AppHeader({ title }) {
-  const { theme, toggleTheme } = useTheme()
+  // const { theme, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
 
   return (
@@ -15,9 +15,9 @@ export default function AppHeader({ title }) {
           Logout
         </button>
       )}
-      <button type="button" className="btn-secondary" onClick={toggleTheme}>
+      {/* <button type="button" className="btn-secondary" onClick={toggleTheme}>
         {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
-      </button>
+      </button> */}
     </header>
   )
 }
