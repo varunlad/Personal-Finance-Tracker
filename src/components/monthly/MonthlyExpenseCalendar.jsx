@@ -11,7 +11,7 @@ import Modal from '../modal/Modal'
  *  - dayGroups: Array<{
  *      date: 'YYYY-MM-DD',
  *      total?: number,
- *      items: Array<{ id: string, amount: number, category?: string }>
+ *      items: Array<{ id: string, amount: number, category?: string, note?: string }>
  *    }>
  *  - startOnMonday?: boolean
  *  - currency?: 'INR' | 'RS'
@@ -46,18 +46,36 @@ export default function MonthlyExpenseCalendar({
     ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-  // --- Category normalization & colors (keep consistent with app-wide mapping) ---
-  const normalizeCat = (c) => {
-    const s = String(c || 'other').toLowerCase()
-    if (s.includes('mutual')) return 'mutualFund'
-    if (s.includes('stock')) return 'stock'
-    if (s.includes('shop')) return 'shopping'
-    if (s.includes('groc')) return 'grocery'
-    if (s.includes('rent') || s.includes('bill')) return 'rentBills'
+  // --- Category mapping ---
+  // Convert raw backend string to internal key
+  const toKey = (raw) => {
+    const s = String(raw || '').trim()
+    if (s === 'Credit Card') return 'creditCard'
+    if (s === 'EMIs') return 'emi'
+    const l = s.toLowerCase()
+    if (l.includes('mutual')) return 'mutualFund'
+    if (l.includes('stock')) return 'stock'
+    if (l.includes('shop')) return 'shopping'
+    if (l.includes('groc')) return 'grocery'
+    if (l.includes('rent') || l.includes('bill')) return 'rentBills'
+    if (l === 'other') return 'other'
     return 'other'
   }
+  const LABELS = {
+    creditCard: 'Credit Card',
+    emi: 'EMIs',
+    mutualFund: 'Mutual Fund',
+    stock: 'Stocks',
+    shopping: 'Shopping',
+    grocery: 'Grocery',
+    rentBills: 'Rent/Bills',
+    other: 'Other',
+  }
 
+  // --- Colors (added new ones for Credit Card & EMIs) ---
   const CATEGORY_COLORS = {
+    creditCard: '#6366F1', // Indigo 500
+    emi: '#F59E0B',        // Amber 500
     mutualFund: '#53A9EB',
     stock: '#588352FF',
     shopping: '#E955DCFF',
@@ -95,19 +113,19 @@ export default function MonthlyExpenseCalendar({
     for (const [dayNum, items] of itemsByDay.entries()) {
       const acc = new Map() // catKey -> total
       for (const it of items) {
-        const key = normalizeCat(it.category)
+        const key = toKey(it.category)
         const amt = Number(it.amount) || 0
         acc.set(key, (acc.get(key) || 0) + amt)
       }
       const arr = Array.from(acc.entries())
         .map(([category, total]) => ({ category, total }))
-        .sort((a, b) => b.total - a.total) // largest first
+        .sort((a, b) => b.total - a.total)
       map.set(dayNum, arr)
     }
     return map
   }, [itemsByDay])
 
-  // Top 3 most expensive days in the month (by total)
+  // Top 3 most expensive days
   const top3Days = useMemo(() => {
     return Array.from(totalsByDay.entries())
       .sort((a, b) => b[1] - a[1])
@@ -115,7 +133,7 @@ export default function MonthlyExpenseCalendar({
       .map(([dayNum]) => dayNum)
   }, [totalsByDay])
 
-  // Calendar cells (6 rows * 7 cols = 42)
+  // Calendar cells
   const cells = useMemo(() => {
     const blanksBefore = offset
     const blanksAfter = 42 - blanksBefore - daysInMonth
@@ -148,7 +166,7 @@ export default function MonthlyExpenseCalendar({
   const fmtAmount = (n) =>
     currency === 'INR'
       ? '₹ ' + new Intl.NumberFormat('en-IN').format(n)
-      : '₹ ' + new Intl.NumberFormat('en-IN').format(n) // "RS" displayed as ₹
+      : '₹ ' + new Intl.NumberFormat('en-IN').format(n)
 
   // Modal state
   const [openDay, setOpenDay] = useState(null)
@@ -223,17 +241,14 @@ export default function MonthlyExpenseCalendar({
           const isTop = top3Days.includes(dayNum)
           const catTotals = categoryTotalsByDay.get(dayNum) || []
 
-          // Limit badges; show +N if too many
           const MAX_BADGES = 3
           const visibleBadges = catTotals.slice(0, MAX_BADGES)
           const overflowCount = Math.max(0, catTotals.length - MAX_BADGES)
-
           const showCatRow = visibleBadges.length > 0
 
-          // a11y category summary
           const catSummary =
             visibleBadges
-              .map(ct => `${ct.category} ${fmtAmount(ct.total)}`)
+              .map(ct => `${LABELS[ct.category] || ct.category} ${fmtAmount(ct.total)}`)
               .join(', ') + (overflowCount ? `, +${overflowCount} more` : '')
 
           return (
@@ -251,7 +266,6 @@ export default function MonthlyExpenseCalendar({
             >
               <div className="cal-daynum">{dayNum}</div>
 
-              {/* Desktop-only via CSS (hidden on mobile) */}
               {total > 0 && <div className="cal-amount">{fmtAmount(total)}</div>}
 
               {showCatRow && (
@@ -261,7 +275,7 @@ export default function MonthlyExpenseCalendar({
                       key={`badge-${dayNum}-${ct.category}-${i}`}
                       className="cal-cat-badge"
                       style={{ backgroundColor: getCategoryColor(ct.category) }}
-                      title={`${ct.category}: ${fmtAmount(ct.total)}`}
+                      title={`${LABELS[ct.category] || ct.category}: ${fmtAmount(ct.total)}`}
                     >
                       <span className="cal-cat-amt">{fmtAmount(ct.total)}</span>
                     </div>
@@ -281,7 +295,7 @@ export default function MonthlyExpenseCalendar({
         })}
       </div>
 
-      {/* Modal with line items */}
+      {/* Modal with line items incl. notes */}
       <Modal open={!!openDay} onClose={() => setOpenDay(null)} ariaLabel="Day details">
         <h4 className="modal-title">{selectedDateLabel}</h4>
         <div className="modal-total">
@@ -291,7 +305,7 @@ export default function MonthlyExpenseCalendar({
         {selectedItems.length > 0 ? (
           <ul className="modal-list">
             {selectedItems.map((item, i) => {
-              const key = normalizeCat(item.category)
+              const key = toKey(item.category)
               return (
                 <li key={`exp-${item.id || i}`} className="modal-list-item">
                   <div className="item-line">
@@ -300,9 +314,14 @@ export default function MonthlyExpenseCalendar({
                       style={{ backgroundColor: getCategoryColor(key) }}
                       aria-hidden="true"
                     />
-                    <span className="item-category">{key}</span>
+                    <span className="item-category">{LABELS[key] || key}</span>
                     <span className="item-amount">{fmtAmount(item.amount)}</span>
                   </div>
+                  {item.note ? (
+                    <div className="item-note muted" style={{ marginLeft: 24 }}>
+                      {item.note}
+                    </div>
+                  ) : null}
                 </li>
               )
             })}

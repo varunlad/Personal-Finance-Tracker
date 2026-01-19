@@ -33,8 +33,12 @@ export default function CategoryChartSwitcher({
   const borderColor = "var(--border)";
 
   // --- Category color map (authoritative) ---
+  // We use internal keys; labels coming from backend are normalized to these keys below.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const CATEGORY_COLORS = {
+    creditCard: "#6366F1", // NEW: Credit Card (Indigo 500)
+    emi: "#F59E0B",        // NEW: EMIs (Amber 500)
+
     mutualFund: "#53A9EB",
     stock: "#588352FF",
     shopping: "#E955DCFF",
@@ -43,14 +47,20 @@ export default function CategoryChartSwitcher({
     rentBills: "#E98E52FF",
   };
 
-  // Normalize external label strings to internal keys used in your app
+  // Normalize external label strings to internal keys used in your app.
+  // Supports exact labels "Credit Card" and "EMIs" from backend.
   const normalizeCat = (c) => {
-    const s = String(c || "other").toLowerCase();
+    const raw = String(c || "other").trim();
+    if (raw === "Credit Card") return "creditCard";
+    if (raw === "EMIs") return "emi";
+
+    const s = raw.toLowerCase();
     if (s.includes("mutual")) return "mutualFund";
     if (s.includes("stock")) return "stock";
     if (s.includes("shop")) return "shopping";
     if (s.includes("groc")) return "grocery";
     if (s.includes("rent") || s.includes("bill")) return "rentBills";
+    if (s === "other") return "other";
     return "other";
   };
 
@@ -65,9 +75,7 @@ export default function CategoryChartSwitcher({
   );
 
   // Map labels -> colors using the category dictionary; fallback to provided colors if unknown
-   
   const mappedColors = useMemo(() => {
-    // If there are more labels than fallback colors, reuse last fallback color to avoid undefined
     const fallback = (i) => colors[Math.min(i, colors.length - 1)] || "#999";
     return labels.map((label, idx) => {
       const key = normalizeCat(label);
@@ -194,7 +202,8 @@ export default function CategoryChartSwitcher({
     safeTotal,
   ]);
 
-  const footerTotal = typeof totalVal === "number" ? totalVal : safeTotal;
+  const footerTotal =
+    typeof totalVal === "number" ? totalVal : safeTotal;
 
   return (
     <div className="chart-switcher" style={{ minHeight: 412 }}>
@@ -225,7 +234,9 @@ export default function CategoryChartSwitcher({
       {chartType === "bar" && (
         <div className="metric">
           Total:&nbsp;
-          <span className="metric-value">{formatINR(footerTotal, currencySymbol)}</span>
+          <span className="metric-value">
+            {formatINR(footerTotal, currencySymbol)}
+          </span>
         </div>
       )}
     </div>
