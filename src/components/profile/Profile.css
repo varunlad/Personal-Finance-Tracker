@@ -1,0 +1,266 @@
+/* ===== Profile Modal (aligned to index.css theme tokens) ===== */
+
+.profile-modal-overlay {
+  position: fixed;
+  inset: 0;
+  /* Subtle dim that works on both dark & light themes */
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+}
+
+.profile-modal {
+  width: 100%;
+  max-width: 960px;
+  max-height: 90vh;
+  overflow: hidden;
+
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  display: flex;
+  flex-direction: column;
+
+  /* subtle elevation */
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+/* Header */
+.profile-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-modal__header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--text);
+}
+
+/* Tabs */
+.profile-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+}
+
+.profile-tab {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.profile-tab:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.profile-tab.active {
+  background: color-mix(in oklab, var(--primary) 15%, transparent);
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+/* Content */
+.profile-modal__content {
+  padding: 16px;
+  overflow: auto;
+  flex: 1;
+}
+
+/* Footer */
+.profile-modal__footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Reuse your existing .btn & .btn-secondary styles.
+   If you still want a .btn-primary alias, uncomment below:
+
+.btn-primary { composes: btn; }
+*/
+
+/* Icon buttons (close, edit, delete) */
+.icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 1rem;
+  line-height: 1;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border);
+}
+
+.icon-btn.danger {
+  color: var(--red);
+}
+
+.icon-btn:focus-visible,
+.profile-tab:focus-visible,
+.btn:focus-visible,
+.btn-secondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 35%, transparent);
+}
+
+/* ===== Forms ===== */
+
+/* Let inputs/selects inherit your global styles from index.css.
+   We only handle layout and spacing here. */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-row label {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.form-row .muted {
+  color: var(--muted);
+}
+
+/* Section wrapper for the add/edit form */
+.recurring-editor {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: transparent; /* matches theme card look */
+}
+
+.actions-right {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* ===== Summary Cards ===== */
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.summary-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.summary-title {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.summary-value {
+  margin-top: 4px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ===== Table ===== */
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.recurring-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden; /* for rounded borders with header */
+}
+
+.recurring-table thead th {
+  background: color-mix(in oklab, var(--card) 85%, var(--bg));
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  padding: 10px;
+  font-weight: 600;
+}
+
+.recurring-table tbody td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px;
+  color: var(--text);
+}
+
+.recurring-table tbody tr:hover td {
+  background: color-mix(in oklab, var(--card) 92%, var(--bg));
+}
+
+.recurring-table .row-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.empty-row {
+  text-align: center;
+  color: var(--muted);
+}
+
+/* ===== Responsiveness ===== */
+
+@media (max-width: 1024px) {
+  .form-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-modal {
+    max-height: 95vh;
+    border-radius: 10px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-cards {
+    grid-template-columns: 1fr;
+  }
+}
