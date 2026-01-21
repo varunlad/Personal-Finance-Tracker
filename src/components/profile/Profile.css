@@ -1,9 +1,9 @@
+
 /* ===== Profile Modal (aligned to index.css theme tokens) ===== */
 
 .profile-modal-overlay {
   position: fixed;
   inset: 0;
-  /* Subtle dim that works on both dark & light themes */
   background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
@@ -26,7 +26,6 @@
   display: flex;
   flex-direction: column;
 
-  /* subtle elevation */
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
@@ -46,41 +45,10 @@
   color: var(--text);
 }
 
-/* Tabs */
-.profile-tabs {
-  display: flex;
-  gap: 8px;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--border);
-  background: transparent;
-}
-
-.profile-tab {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text);
-  border-radius: 8px;
-  cursor: pointer;
-  font: inherit;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.profile-tab:hover {
-  border-color: var(--primary);
-  color: var(--text);
-}
-
-.profile-tab.active {
-  background: color-mix(in oklab, var(--primary) 15%, transparent);
-  border-color: var(--primary);
-  color: var(--text);
-}
-
 /* Content */
 .profile-modal__content {
   padding: 16px;
-  overflow: auto;
+  overflow-y: auto;
   flex: 1;
 }
 
@@ -92,12 +60,6 @@
   justify-content: flex-end;
   gap: 8px;
 }
-
-/* Reuse your existing .btn & .btn-secondary styles.
-   If you still want a .btn-primary alias, uncomment below:
-
-.btn-primary { composes: btn; }
-*/
 
 /* Icon buttons (close, edit, delete) */
 .icon-btn {
@@ -113,7 +75,7 @@
 }
 
 .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255,255,255,0.05);
   border-color: var(--border);
 }
 
@@ -122,21 +84,48 @@
 }
 
 .icon-btn:focus-visible,
-.profile-tab:focus-visible,
 .btn:focus-visible,
 .btn-secondary:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 35%, transparent);
 }
 
-/* ===== Forms ===== */
+/* ===== Compact User Row ===== */
 
-/* Let inputs/selects inherit your global styles from index.css.
-   We only handle layout and spacing here. */
+.compact-user-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.compact-user-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 2fr auto;
+  gap: 16px;
+  align-items: end;
+}
+
+.compact-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* ===== Recurring Editor ===== */
+
+.recurring-editor {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: transparent;
+}
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -144,6 +133,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin-bottom: 8px;
 }
 
 .form-row label {
@@ -151,32 +141,17 @@
   font-size: 0.9rem;
 }
 
-.form-row .muted {
-  color: var(--muted);
-}
+/* ===== Summary Cards + Month Pills ===== */
 
-/* Section wrapper for the add/edit form */
-.recurring-editor {
-  margin-bottom: 16px;
-  padding: 12px;
-  border: 1px dashed var(--border);
-  border-radius: 12px;
-  background: transparent; /* matches theme card look */
+.monthly-summary {
+  margin-bottom: 12px;
 }
-
-.actions-right {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
-}
-
-/* ===== Summary Cards ===== */
 
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .summary-card {
@@ -198,7 +173,34 @@
   color: var(--text);
 }
 
-/* ===== Table ===== */
+.month-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 6px 2px 2px;
+}
+
+.pill {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 10px;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.pill.primary {
+  border-color: var(--primary);
+}
+
+.pill .pill-label { color: var(--muted); }
+.pill .pill-amount { font-weight: 600; }
+
+/* ===== Table & Mobile Cards (used by RecurringItemList) ===== */
 
 .table-responsive {
   width: 100%;
@@ -210,7 +212,7 @@
   border-collapse: collapse;
   border: 1px solid var(--border);
   border-radius: 12px;
-  overflow: hidden; /* for rounded borders with header */
+  overflow: hidden;
 }
 
 .recurring-table thead th {
@@ -225,7 +227,6 @@
 .recurring-table tbody td {
   border-bottom: 1px solid var(--border);
   padding: 10px;
-  color: var(--text);
 }
 
 .recurring-table tbody tr:hover td {
@@ -242,6 +243,62 @@
   color: var(--muted);
 }
 
+/* Desktop vs Mobile visibility for the list component */
+.desktop-only { display: block; }
+.mobile-only { display: none; }
+
+@media (max-width: 768px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: block; }
+}
+
+/* Mobile cards */
+.rec-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.rec-card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rec-card__label {
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.rec-card__meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+/* chips for type */
+.chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+}
+.chip-sip { border-color: #0ea5e9; color: #0ea5e9; }
+.chip-emi { border-color: #f59e0b; color: #f59e0b; }
+.chip-fixed { border-color: #a78bfa; color: #a78bfa; }
+
+.rec-amount { font-weight: 700; }
+
+.rec-card__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
 /* ===== Responsiveness ===== */
 
 @media (max-width: 1024px) {
@@ -254,6 +311,10 @@
   .profile-modal {
     max-height: 95vh;
     border-radius: 10px;
+  }
+
+  .compact-user-grid {
+    grid-template-columns: 1fr;
   }
 
   .form-grid {
