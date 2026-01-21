@@ -5,8 +5,16 @@ import RecurringItemEditor from "./RecurringItemEditor";
 import RecurringItemList from "./RecurringItemList";
 import { useProfileModal } from "../../context/ProfileModalProvider";
 import { amountForMonth } from "./utils/recurrence";
+import ChangePasswordForm from "./ChangePasswordForm";
+import {
+  listRecurring as apiListRecurring,
+  addRecurring as apiAddRecurring,
+  updateRecurring as apiUpdateRecurring,
+  deleteRecurring as apiDeleteRecurring,
+} from "../../api/recurring";
+import { useToast } from "../toast/ToastProvider";
 
-// --- Helpers: read/write auth_user from localStorage ---
+// --- Helpers: read auth ---
 function readAuthUserFromStorage() {
   try {
     const raw = localStorage.getItem("auth_user");
@@ -21,97 +29,171 @@ function readAuthUserFromStorage() {
     return { id: "", name: "", email: "" };
   }
 }
+function readAuthTokenFromStorage() {
+  try {
+    return localStorage.getItem("auth_token") || "";
+  } catch {
+    return "";
+  }
+}
+
+// Deep equality for items
+function eqItem(a, b) {
+  if (!a || !b) return false;
+  const simple =
+    a.id === b.id &&
+    a.type === b.type &&
+    a.label === b.label &&
+    Number(a.amount) === Number(b.amount) &&
+    a.recurrence === b.recurrence &&
+    (a.startDate || "") === (b.startDate || "") &&
+    (a.endDate || "") === (b.endDate || "");
+  if (!simple) return false;
+  const sa = a.stepUp || {};
+  const sb = b.stepUp || {};
+  return (
+    !!sa.enabled === !!sb.enabled &&
+    (sa.mode || "") === (sb.mode || "") &&
+    (sa.every || "") === (sb.every || "") &&
+    Number(sa.value || 0) === Number(sb.value || 0) &&
+    (sa.from || "") === (sb.from || "")
+  );
+}
+function normalizeForWire(x) {
+  const step = x.stepUp || {};
+  return {
+    id: String(x.id),
+    type: String(x.type),
+    label: String(x.label),
+    amount: Number(x.amount),
+    recurrence: String(x.recurrence),
+    startDate: x.startDate || "",
+    endDate: x.endDate || "",
+    stepUp: {
+      enabled: !!step.enabled,
+      mode: step.mode || "amount",
+      every: step.every || "12m",
+      value: Number(step.value || 0),
+      from: step.from || "",
+    },
+  };
+}
+function isEqualList(a = [], b = []) {
+  if (a.length !== b.length) return false;
+  const mapB = new Map(b.map((x) => [x.id, x]));
+  for (const it of a) {
+    const other = mapB.get(it.id);
+    if (!other || !eqItem(it, other)) return false;
+  }
+  return true;
+}
 
 export default function Profile() {
   const { isOpen, closeProfile } = useProfileModal();
-
-  // Compact view: user details + recurring in one section
+  const toast = useToast();
   const [user, setUser] = useState(() => readAuthUserFromStorage());
-  const [items, setItems] = useState([]); // you can hydrate from localStorage if needed (shown below)
+  const [items, setItems] = useState([]);
+  const [serverSnapshot, setServerSnapshot] = useState([]); // last known server state
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const token = readAuthTokenFromStorage();
   const dialogRef = useRef(null);
 
-  // Rehydrate user (and optional items) when modal opens
+  const dirty = useMemo(
+    () => !isEqualList(items, serverSnapshot),
+    [items, serverSnapshot]
+  );
+
+  // Rehydrate user
   useEffect(() => {
     if (!isOpen) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(readAuthUserFromStorage());
-
-    // Optional: hydrate recurring from localStorage (uncomment if you want)
-    try {
-      const raw = localStorage.getItem("profile_recurring");
-      setItems(raw ? JSON.parse(raw) : []);
-    } catch {
-      setItems([]);
-    }
   }, [isOpen]);
 
-  // Close on Escape
+  // Load recurring from backend when modal opens; fallback to localStorage
   useEffect(() => {
     if (!isOpen) return;
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") closeProfile();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [isOpen, closeProfile]);
-
-  // Lock background scroll, avoid layout shift, and prevent touch scroll behind modal
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const body = document.body;
-    const prevOverflow = body.style.overflow;
-    const prevPaddingRight = body.style.paddingRight;
-
-    // Compute scrollbar width to avoid layout shift when hiding overflow
-    const scrollBarWidth =
-      window.innerWidth - document.documentElement.clientWidth;
-    body.style.overflow = "hidden";
-    if (scrollBarWidth > 0) {
-      body.style.paddingRight = `${scrollBarWidth}px`;
-    }
-
-    // Prevent touch scroll behind modal (iOS & Android)
-    const preventTouchScroll = (e) => {
-      const backdrop = document.querySelector(".modal-backdrop");
-      const panel = document.querySelector(".modal-panel");
-      if (!backdrop || !panel) return;
-      if (!panel.contains(e.target)) {
-        e.preventDefault();
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        if (!token) throw new Error("No auth token");
+        const serverItems = await apiListRecurring({ token });
+        if (!cancelled) {
+          setItems(serverItems || []);
+          setServerSnapshot(serverItems || []);
+          try {
+            localStorage.setItem(
+              "profile_recurring",
+              JSON.stringify(serverItems || [])
+            );
+          } catch { /* empty */ }
+        }
+      } catch (err) {
+        console.warn(
+          "Load recurring failed, using localStorage fallback:",
+          err
+        );
+        try {
+          const raw = localStorage.getItem("profile_recurring");
+          const local = raw ? JSON.parse(raw) : [];
+          setItems(local);
+          setServerSnapshot(local); // Treat local as snapshot if offline
+        } catch {
+          setItems([]);
+          setServerSnapshot([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    };
-
-    document.addEventListener("touchmove", preventTouchScroll, {
-      passive: false,
-    });
-
+    })();
     return () => {
-      body.style.overflow = prevOverflow;
-      body.style.paddingRight = prevPaddingRight;
-      document.removeEventListener("touchmove", preventTouchScroll);
+      cancelled = true;
     };
-  }, [isOpen]);
+  }, [isOpen, token]);
 
-  // Add or update a recurring item
+  // Close guard: require Sync if dirty
+  const onClose = () => {
+    if (dirty) {
+      toast.error(
+        "You have unsynced changes. Please click “Sync Changes” to save."
+      );
+      return;
+    }
+    closeProfile();
+  };
+
+  // Local-only add/update (no auto-save to server)
   const handleAddOrUpdate = (newItem) => {
     setItems((prev) => {
       const exists = prev.some((it) => it.id === newItem.id);
-      if (exists) {
-        return prev.map((it) => (it.id === newItem.id ? newItem : it));
-      }
-      return [...prev, newItem];
+      const next = exists
+        ? prev.map((it) => (it.id === newItem.id ? newItem : it))
+        : [...prev, newItem];
+      try {
+        localStorage.setItem("profile_recurring", JSON.stringify(next));
+      } catch { /* empty */ }
+      toast.info(exists ? "Updated (not synced)" : "Added (not synced)");
+      return next;
     });
   };
 
+  // Local-only delete (no auto-save to server)
   const handleDelete = (id) => {
-    setItems((prev) => prev.filter((it) => it.id !== id));
+    setItems((prev) => {
+      const next = prev.filter((it) => it.id !== id);
+      try {
+        localStorage.setItem("profile_recurring", JSON.stringify(next));
+      } catch { /* empty */ }
+      toast.info("Deleted (not synced)");
+      return next;
+    });
   };
 
-  // --- Monthly summary (accurate due amounts based on recurrence) ---
+  // --- Monthly summary ---
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
-
   const thisMonthTotal = useMemo(
     () => amountForMonth(items, year, month),
     [items, year, month]
@@ -152,28 +234,55 @@ export default function Profile() {
     return arr;
   }, [items, year, month]);
 
-  // Save: persist user + items (frontend only for now)
-  //   const handleSaveAll = async () => {
-  //     try {
-  //       const existing = readAuthUserFromStorage()
-  //       const nextUser = {
-  //         ...existing,
-  //         name: user.name?.trim() || '',
-  //         email: user.email?.trim() || '',
-  //       }
-  //       localStorage.setItem('auth_user', JSON.stringify(nextUser))
-  //     } catch (err) {
-  //       console.error('Failed to save auth_user:', err)
-  //     }
+  // --- Sync Changes: diff local vs server, apply, refetch, set snapshot ---
+  const syncNow = async () => {
+    if (!token) {
+      toast.error("You are not logged in");
+      return;
+    }
+    setSyncing(true);
+    try {
+      // Get current server state first (multi-device safe)
+      const server = await apiListRecurring({ token });
+      const serverById = new Map(server.map((x) => [x.id, x]));
+      const localById = new Map(items.map((x) => [x.id, x]));
 
-  //     try {
-  //       localStorage.setItem('profile_recurring', JSON.stringify(items))
-  //     } catch (err) {
-  //       console.error('Failed to save recurring items:', err)
-  //     }
+      const toCreate = [],
+        toUpdate = [],
+        toDelete = [];
 
-  //     closeProfile()
-  //   }
+      for (const [id, l] of localById) {
+        const s = serverById.get(id);
+        if (!s) toCreate.push(normalizeForWire(l));
+        else if (!eqItem(l, s)) toUpdate.push(normalizeForWire(l));
+      }
+      for (const [id] of serverById) {
+        if (!localById.has(id)) toDelete.push(id);
+      }
+
+      for (const doc of toCreate) await apiAddRecurring({ item: doc, token });
+      for (const doc of toUpdate)
+        await apiUpdateRecurring({ id: doc.id, item: doc, token });
+      for (const id of toDelete) await apiDeleteRecurring({ id, token });
+
+      const refreshed = await apiListRecurring({ token });
+      setItems(refreshed || []);
+      setServerSnapshot(refreshed || []);
+      try {
+        localStorage.setItem(
+          "profile_recurring",
+          JSON.stringify(refreshed || [])
+        );
+      } catch { /* empty */ }
+
+      toast.success("Changes synced");
+    } catch (err) {
+      console.error("syncNow failed:", err);
+      toast.error(err?.message || "Sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -190,14 +299,12 @@ export default function Profile() {
           <button
             type="button"
             className="icon-btn"
-            onClick={closeProfile}
+            onClick={onClose}
             aria-label="Close"
           >
             ✕
           </button>
         </header>
-
-        {/* One compact section */}
         <section className="profile-modal__content">
           {/* Compact user row */}
           <div className="compact-user-row">
@@ -205,14 +312,11 @@ export default function Profile() {
               <div className="form-row">
                 <label htmlFor="ud-name">Name</label>
                 <input
-                  readOnly={true}
+                  readOnly
                   id="ud-name"
                   type="text"
                   placeholder="Your name"
                   value={user.name || ""}
-                  onChange={(e) =>
-                    setUser((u) => ({ ...u, name: e.target.value }))
-                  }
                   autoComplete="name"
                 />
               </div>
@@ -220,27 +324,24 @@ export default function Profile() {
               <div className="form-row">
                 <label htmlFor="ud-email">Email</label>
                 <input
-                  readOnly={true}
+                  readOnly
                   id="ud-email"
                   type="email"
                   placeholder="you@example.com"
                   value={user.email || ""}
-                  onChange={(e) =>
-                    setUser((u) => ({ ...u, email: e.target.value }))
-                  }
                   autoComplete="email"
                 />
               </div>
 
-              {/* <div className="compact-actions">
-                <button type="button" className="btn" onClick={handleSaveAll}>
-                  Save
-                </button>
-              </div> */}
+              {loading ? (
+                <div className="muted" style={{ alignSelf: "end" }}>
+                  Loading recurring…
+                </div>
+              ) : null}
             </div>
           </div>
 
-          {/* Monthly summary (real due amounts) */}
+          {/* Monthly summary */}
           <div className="monthly-summary">
             <div className="summary-cards">
               <div className="summary-card">
@@ -285,16 +386,43 @@ export default function Profile() {
             onDelete={handleDelete}
             onEdit={handleAddOrUpdate}
           />
+
+          {/* Change Password mini-form */}
+          <div
+            className="card"
+            style={{
+              marginTop: 16,
+              padding: 12,
+              borderRadius: 8,
+            }}
+          >
+            <ChangePasswordForm />
+          </div>
         </section>
 
         <footer className="profile-modal__footer">
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={closeProfile}
-          >
-            Close
-          </button>
+          <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={onClose}
+              disabled={syncing}
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={syncNow}
+              disabled={!dirty || syncing || loading}
+              style={{ backgroundColor: dirty ? "#10b981" : "#9ca3af" }}
+              title={
+                dirty ? "Sync your changes to the server" : "No changes to sync"
+              }
+            >
+              {syncing ? "Syncing…" : "Sync Changes"}
+            </button>
+          </div>
         </footer>
       </div>
     </div>

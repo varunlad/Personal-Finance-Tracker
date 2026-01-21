@@ -1,5 +1,3 @@
-
-// src/api/expenses.js
 import { request } from "./http";
 
 export function listMonthExpenses({ month, year, token }) {

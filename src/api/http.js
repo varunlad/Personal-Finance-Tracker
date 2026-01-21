@@ -1,4 +1,3 @@
-// src/api/http.js
 // Use a proper base like http://localhost:5000
 const BASE =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) ||
