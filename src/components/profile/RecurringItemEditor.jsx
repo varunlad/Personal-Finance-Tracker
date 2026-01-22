@@ -29,7 +29,7 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
       enabled: false,
       mode: 'amount',     // 'amount' | 'percent'
       every: '12m',       // '6m' | '12m'
-      value: '',          // number
+      value: '',          // number (as string in form)
       from: '',           // default startDate
     },
   })
@@ -37,18 +37,18 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
   useEffect(() => {
     if (editItem) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setForm({
-        stepUp: { enabled: false, mode: 'amount', every: '12m', value: '', from: '' },
+      setForm((prev) => ({
+        ...prev,
         ...editItem,
-        // eslint-disable-next-line no-dupe-keys
+        // build a single, normalized stepUp from editItem with sane defaults
         stepUp: {
-          enabled: editItem?.stepUp?.enabled || false,
-          mode: editItem?.stepUp?.mode || 'amount',
-          every: editItem?.stepUp?.every || '12m',
+          enabled: editItem?.stepUp?.enabled ?? false,
+          mode: editItem?.stepUp?.mode ?? 'amount',
+          every: editItem?.stepUp?.every ?? '12m',
           value: editItem?.stepUp?.value ?? '',
-          from: editItem?.stepUp?.from || '',
+          from: editItem?.stepUp?.from ?? '',
         },
-      })
+      }))
     }
   }, [editItem])
 
@@ -60,7 +60,8 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
   }, [form])
 
   const update = (patch) => setForm((f) => ({ ...f, ...patch }))
-  const updateStep = (patch) => setForm((f) => ({ ...f, stepUp: { ...f.stepUp, ...patch } }))
+  const updateStep = (patch) =>
+    setForm((f) => ({ ...f, stepUp: { ...f.stepUp, ...patch } }))
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -247,3 +248,4 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
     </form>
   )
 }
+``
