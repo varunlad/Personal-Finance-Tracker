@@ -1,7 +1,6 @@
-
 import { useEffect, useMemo, useState } from "react";
 import CategoryChartSwitcher from "./CategoryChartSwitcher";
-import "./expenseSummary.css";
+import "./expensesummary.css";
 
 import { useAuth } from "../../context/auth-context";
 import { listRangeExpenses } from "../../api/expenses";
@@ -80,13 +79,17 @@ export default function ExpenseSummary({
   function onPendingStartChange(e) {
     const next = parseInputDate(e.target.value);
     setPendingStart(next);
-    setError(next > pendingEnd ? "Start date cannot be later than end date." : "");
+    setError(
+      next > pendingEnd ? "Start date cannot be later than end date." : ""
+    );
   }
 
   function onPendingEndChange(e) {
     const next = parseInputDate(e.target.value);
     setPendingEnd(next);
-    setError(pendingStart > next ? "End date cannot be earlier than start date." : "");
+    setError(
+      pendingStart > next ? "End date cannot be earlier than start date." : ""
+    );
   }
 
   async function handleApply() {
@@ -95,10 +98,16 @@ export default function ExpenseSummary({
       return;
     }
     const start = new Date(
-      Math.max(minDate.getTime(), Math.min(pendingStart.getTime(), maxDate.getTime()))
+      Math.max(
+        minDate.getTime(),
+        Math.min(pendingStart.getTime(), maxDate.getTime())
+      )
     );
     const end = new Date(
-      Math.max(minDate.getTime(), Math.min(pendingEnd.getTime(), maxDate.getTime()))
+      Math.max(
+        minDate.getTime(),
+        Math.min(pendingEnd.getTime(), maxDate.getTime())
+      )
     );
 
     setAppliedStart(start);
@@ -150,7 +159,11 @@ export default function ExpenseSummary({
 
     async function fetchYTD() {
       const start = new Date(today.getFullYear(), 0, 1);
-      const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const end = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
+      );
 
       setAppliedStart(start);
       setAppliedEnd(end);
@@ -184,7 +197,9 @@ export default function ExpenseSummary({
         }, remaining);
       } catch (err) {
         if (!cancelled) {
-          setError(err.message || "Failed to fetch current year-to-date summary");
+          setError(
+            err.message || "Failed to fetch current year-to-date summary"
+          );
           setRangeGroups([]);
         }
         const elapsed = Date.now() - t0;
@@ -229,7 +244,9 @@ export default function ExpenseSummary({
   const minStr = toInputValue(minDate);
   const maxStr = toInputValue(maxDate);
 
-  const isDark = document.body.classList.contains("theme-dark");
+  const isDark =
+    typeof document !== "undefined" &&
+    document.body?.classList?.contains("theme-dark");
 
   return (
     <section className="expense-summary card" aria-busy={fetching}>
@@ -295,7 +312,9 @@ export default function ExpenseSummary({
           <div className="empty-state">
             <h3>No expense data in this range</h3>
             <p className="muted">
-              Try expanding the range {formatYMD(appliedStart)} → {formatYMD(appliedEnd)}, or ensure expenses exist for the selected period.
+              Try expanding the range {formatYMD(appliedStart)} →{" "}
+              {formatYMD(appliedEnd)}, or ensure expenses exist for the selected
+              period.
             </p>
           </div>
         ) : (
