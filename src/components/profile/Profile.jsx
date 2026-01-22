@@ -1,3 +1,4 @@
+
 // src/components/profile/Profile.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./Profile.css";
@@ -127,7 +128,9 @@ export default function Profile() {
               "profile_recurring",
               JSON.stringify(serverItems || [])
             );
-          } catch { /* empty */ }
+          } catch {
+            /* empty */
+          }
         }
       } catch (err) {
         console.warn(
@@ -152,6 +155,56 @@ export default function Profile() {
     };
   }, [isOpen, token]);
 
+  // 🔒 Background scroll lock (desktop + mobile)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const body = document.body;
+    const prevOverflow = body.style.overflow;
+    const prevPaddingRight = body.style.paddingRight;
+
+    // Calculate scrollbar width to avoid layout shift when hiding overflow
+    const scrollBarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
+
+    body.style.overflow = "hidden";
+    if (scrollBarWidth > 0) {
+      body.style.paddingRight = `${scrollBarWidth}px`;
+    }
+
+    // Prevent touch scroll behind modal (iOS/Android)
+    const preventTouchScroll = (e) => {
+      const panel = dialogRef.current;
+      if (!panel) return;
+      if (!panel.contains(e.target)) {
+        e.preventDefault();
+      }
+    };
+
+    // Prevent wheel scroll from bubbling to the page when outside modal
+    const preventWheelScroll = (e) => {
+      const panel = dialogRef.current;
+      if (!panel) return;
+      if (!panel.contains(e.target)) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("touchmove", preventTouchScroll, {
+      passive: false,
+    });
+    document.addEventListener("wheel", preventWheelScroll, {
+      passive: false,
+    });
+
+    return () => {
+      body.style.overflow = prevOverflow;
+      body.style.paddingRight = prevPaddingRight;
+      document.removeEventListener("touchmove", preventTouchScroll);
+      document.removeEventListener("wheel", preventWheelScroll);
+    };
+  }, [isOpen]);
+
   // Close guard: require Sync if dirty
   const onClose = () => {
     if (dirty) {
@@ -172,7 +225,9 @@ export default function Profile() {
         : [...prev, newItem];
       try {
         localStorage.setItem("profile_recurring", JSON.stringify(next));
-      } catch { /* empty */ }
+      } catch {
+        /* empty */
+      }
       toast.info(exists ? "Updated (not synced)" : "Added (not synced)");
       return next;
     });
@@ -184,7 +239,9 @@ export default function Profile() {
       const next = prev.filter((it) => it.id !== id);
       try {
         localStorage.setItem("profile_recurring", JSON.stringify(next));
-      } catch { /* empty */ }
+      } catch {
+        /* empty */
+      }
       toast.info("Deleted (not synced)");
       return next;
     });
@@ -273,7 +330,9 @@ export default function Profile() {
           "profile_recurring",
           JSON.stringify(refreshed || [])
         );
-      } catch { /* empty */ }
+      } catch {
+        /* empty */
+      }
 
       toast.success("Changes synced");
     } catch (err) {
