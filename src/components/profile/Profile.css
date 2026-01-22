@@ -301,10 +301,77 @@
 
 .change-password-form .form-row {
   display: grid;
-  grid-template-columns: 140px 1fr;
+  grid-template-columns: 150px 1fr;
   align-items: center;
   gap: 8px;
   margin: 8px 0;
+}
+
+/* --- Collapsible section styles --- */
+.section {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 12px 0;
+  background: var(--card);
+}
+
+.section__header {
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  border-radius: 10px;
+}
+.section__header:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--card) 92%, var(--bg));
+}
+
+.section__header:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.section__title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.chevron {
+  transition: transform 0.2s ease;
+  font-size: 16px;
+  color: var(--muted);
+}
+.chevron--open {
+  transform: rotate(180deg);
+}
+
+/* === Smooth collapsible animation === */
+.section__content {
+  overflow: hidden;
+  /* Start closed; JS toggles max-height + .is-open */
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition:
+    max-height 260ms ease,
+    opacity 220ms ease,
+    transform 220ms ease;
+  will-change: max-height, opacity, transform;
+  padding: 0 12px; /* horizontal padding retained; vertical only when open */
+  border-top: 1px solid var(--border);
+}
+
+.section__content.is-open {
+  opacity: 1;
+  transform: translateY(0);
+  padding: 8px 12px 12px;
 }
 
 /* ===== Responsiveness ===== */

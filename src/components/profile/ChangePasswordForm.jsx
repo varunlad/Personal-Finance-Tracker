@@ -62,8 +62,6 @@ export default function ChangePasswordForm() {
 
   return (
     <form className="change-password-form" onSubmit={submit}>
-      <h3 style={{ margin: "0 0 8px" }}>Change Password</h3>
-
       <div className="form-row">
         <label htmlFor="cp-current">Current Password</label>
         <input
