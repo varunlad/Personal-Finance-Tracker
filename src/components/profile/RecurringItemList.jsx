@@ -33,7 +33,7 @@ export default function RecurringItemList({ items, onDelete, onEdit }) {
   return (
     <div className="recurring-list">
       {editing && (
-        <div className="edit-inline">
+        <div className="edit-inline" style={{ marginBottom: 20 }}>
           <div className="edit-inline__title">Edit: {editing.label}</div>
           <RecurringItemEditor
             editItem={editing}

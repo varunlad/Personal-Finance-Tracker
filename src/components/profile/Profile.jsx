@@ -89,6 +89,72 @@ function isEqualList(a = [], b = []) {
   return true;
 }
 
+/** Collapsible section (dropdown) with smooth animation */
+function CollapsibleSection({ title, children, open, onToggle, disabled = false }) {
+  const contentRef = useRef(null);
+  const contentId = title.replace(/\s+/g, "-").toLowerCase() + "-content";
+  const headerId = title.replace(/\s+/g, "-").toLowerCase() + "-header";
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+
+    if (open) {
+      // Measure content height and set max-height for animation
+      const full = el.scrollHeight;
+      el.style.maxHeight = full + "px";
+      el.classList.add("is-open");
+
+      // Keep in sync if inner content height changes while open
+      const ro = new ResizeObserver(() => {
+        el.style.maxHeight = el.scrollHeight + "px";
+      });
+      ro.observe(el);
+      return () => ro.disconnect();
+    } else {
+      // Animate close: set current height, force reflow, then set to 0
+      const full = el.scrollHeight;
+      el.style.maxHeight = full + "px";
+      // force reflow (ensure the browser registers the height before collapsing)
+       
+      el.offsetHeight;
+      el.style.maxHeight = "0px";
+      el.classList.remove("is-open");
+    }
+  }, [open, children]);
+
+  return (
+    <div className="section">
+      <button
+        id={headerId}
+        type="button"
+        className="section__header"
+        onClick={() => !disabled && onToggle?.(!open)}
+        aria-expanded={open}
+        aria-controls={contentId}
+        disabled={disabled}
+      >
+        <span className="section__title">{title}</span>
+        {!disabled && (
+          <span className={`chevron ${open ? "chevron--open" : ""}`} aria-hidden="true">▾</span>
+        )}
+      </button>
+
+      {/* Keep content mounted for smooth animation */}
+      <div
+        id={contentId}
+        className="section__content"
+        ref={contentRef}
+        role="region"
+        aria-labelledby={headerId}
+        style={{ maxHeight: open ? undefined : "0px" }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function Profile() {
   const { isOpen, closeProfile } = useProfileModal();
   const toast = useToast();
@@ -97,13 +163,16 @@ export default function Profile() {
   const [serverSnapshot, setServerSnapshot] = useState([]); // last known server state
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+
+  // Collapsible states: keep "Details" and "Monthly Summary" NOT collapsible.
+  const [openEditor, setOpenEditor] = useState(false);
+  const [openList, setOpenList] = useState(true); // list open by default
+  const [openPassword, setOpenPassword] = useState(false);
+
   const token = readAuthTokenFromStorage();
   const dialogRef = useRef(null);
 
-  const dirty = useMemo(
-    () => !isEqualList(items, serverSnapshot),
-    [items, serverSnapshot]
-  );
+  const dirty = useMemo(() => !isEqualList(items, serverSnapshot), [items, serverSnapshot]);
 
   // Rehydrate user
   useEffect(() => {
@@ -111,7 +180,7 @@ export default function Profile() {
     setUser(readAuthUserFromStorage());
   }, [isOpen]);
 
-  // Load recurring from backend when modal opens; fallback to localStorage
+  // Load recurring when modal opens; fallback to localStorage
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
@@ -124,19 +193,13 @@ export default function Profile() {
           setItems(serverItems || []);
           setServerSnapshot(serverItems || []);
           try {
-            localStorage.setItem(
-              "profile_recurring",
-              JSON.stringify(serverItems || [])
-            );
+            localStorage.setItem("profile_recurring", JSON.stringify(serverItems || []));
           } catch {
             /* empty */
           }
         }
       } catch (err) {
-        console.warn(
-          "Load recurring failed, using localStorage fallback:",
-          err
-        );
+        console.warn("Load recurring failed, using localStorage fallback:", err);
         try {
           const raw = localStorage.getItem("profile_recurring");
           const local = raw ? JSON.parse(raw) : [];
@@ -172,30 +235,20 @@ export default function Profile() {
       body.style.paddingRight = `${scrollBarWidth}px`;
     }
 
-    // Prevent touch scroll behind modal (iOS/Android)
+    // Prevent touch/wheel scroll behind modal (iOS/Android/desktop)
     const preventTouchScroll = (e) => {
       const panel = dialogRef.current;
       if (!panel) return;
-      if (!panel.contains(e.target)) {
-        e.preventDefault();
-      }
+      if (!panel.contains(e.target)) e.preventDefault();
     };
-
-    // Prevent wheel scroll from bubbling to the page when outside modal
     const preventWheelScroll = (e) => {
       const panel = dialogRef.current;
       if (!panel) return;
-      if (!panel.contains(e.target)) {
-        e.preventDefault();
-      }
+      if (!panel.contains(e.target)) e.preventDefault();
     };
 
-    document.addEventListener("touchmove", preventTouchScroll, {
-      passive: false,
-    });
-    document.addEventListener("wheel", preventWheelScroll, {
-      passive: false,
-    });
+    document.addEventListener("touchmove", preventTouchScroll, { passive: false });
+    document.addEventListener("wheel", preventWheelScroll, { passive: false });
 
     return () => {
       body.style.overflow = prevOverflow;
@@ -208,9 +261,7 @@ export default function Profile() {
   // Close guard: require Sync if dirty
   const onClose = () => {
     if (dirty) {
-      toast.error(
-        "You have unsynced changes. Please click “Sync Changes” to save."
-      );
+      toast.error("You have unsynced changes. Please click “Sync Changes” to save.");
       return;
     }
     closeProfile();
@@ -220,9 +271,7 @@ export default function Profile() {
   const handleAddOrUpdate = (newItem) => {
     setItems((prev) => {
       const exists = prev.some((it) => it.id === newItem.id);
-      const next = exists
-        ? prev.map((it) => (it.id === newItem.id ? newItem : it))
-        : [...prev, newItem];
+      const next = exists ? prev.map((it) => (it.id === newItem.id ? newItem : it)) : [...prev, newItem];
       try {
         localStorage.setItem("profile_recurring", JSON.stringify(next));
       } catch {
@@ -251,42 +300,17 @@ export default function Profile() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
-  const thisMonthTotal = useMemo(
-    () => amountForMonth(items, year, month),
-    [items, year, month]
-  );
-  const thisMonthEMI = useMemo(
-    () => amountForMonth(items, year, month, "EMI"),
-    [items, year, month]
-  );
-  const thisMonthSIP = useMemo(
-    () => amountForMonth(items, year, month, "SIP"),
-    [items, year, month]
-  );
+  const thisMonthTotal = useMemo(() => amountForMonth(items, year, month), [items, year, month]);
+  const thisMonthEMI = useMemo(() => amountForMonth(items, year, month, "EMI"), [items, year, month]);
+  const thisMonthSIP = useMemo(() => amountForMonth(items, year, month, "SIP"), [items, year, month]);
 
   const next6 = useMemo(() => {
-    const names = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
+    const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const arr = [];
     for (let i = 0; i < 6; i++) {
       const mm = (month + i) % 12;
       const yy = year + Math.floor((month + i) / 12);
-      arr.push({
-        label: `${names[mm]} ${String(yy).slice(-2)}`,
-        amount: amountForMonth(items, yy, mm),
-      });
+      arr.push({ label: `${names[mm]} ${String(yy).slice(-2)}`, amount: amountForMonth(items, yy, mm) });
     }
     return arr;
   }, [items, year, month]);
@@ -318,18 +342,14 @@ export default function Profile() {
       }
 
       for (const doc of toCreate) await apiAddRecurring({ item: doc, token });
-      for (const doc of toUpdate)
-        await apiUpdateRecurring({ id: doc.id, item: doc, token });
+      for (const doc of toUpdate) await apiUpdateRecurring({ id: doc.id, item: doc, token });
       for (const id of toDelete) await apiDeleteRecurring({ id, token });
 
       const refreshed = await apiListRecurring({ token });
       setItems(refreshed || []);
       setServerSnapshot(refreshed || []);
       try {
-        localStorage.setItem(
-          "profile_recurring",
-          JSON.stringify(refreshed || [])
-        );
+        localStorage.setItem("profile_recurring", JSON.stringify(refreshed || []));
       } catch {
         /* empty */
       }
@@ -364,8 +384,9 @@ export default function Profile() {
             ✕
           </button>
         </header>
+
         <section className="profile-modal__content">
-          {/* Compact user row */}
+          {/* --- NOT Collapsible: Details --- */}
           <div className="compact-user-row">
             <div className="compact-user-grid">
               <div className="form-row">
@@ -400,26 +421,20 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Monthly summary */}
+          {/* --- NOT Collapsible: Monthly Summary --- */}
           <div className="monthly-summary">
             <div className="summary-cards">
               <div className="summary-card">
                 <div className="summary-title">This Month · Total</div>
-                <div className="summary-value">
-                  ₹ {thisMonthTotal.toLocaleString("en-IN")}
-                </div>
+                <div className="summary-value">₹ {thisMonthTotal.toLocaleString("en-IN")}</div>
               </div>
               <div className="summary-card">
                 <div className="summary-title">EMI Due</div>
-                <div className="summary-value">
-                  ₹ {thisMonthEMI.toLocaleString("en-IN")}
-                </div>
+                <div className="summary-value">₹ {thisMonthEMI.toLocaleString("en-IN")}</div>
               </div>
               <div className="summary-card">
                 <div className="summary-title">SIP Due</div>
-                <div className="summary-value">
-                  ₹ {thisMonthSIP.toLocaleString("en-IN")}
-                </div>
+                <div className="summary-value">₹ {thisMonthSIP.toLocaleString("en-IN")}</div>
               </div>
             </div>
 
@@ -435,28 +450,46 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Editor + List */}
-          <div className="recurring-editor">
-            <RecurringItemEditor onSubmit={handleAddOrUpdate} />
-          </div>
-
-          <RecurringItemList
-            items={items}
-            onDelete={handleDelete}
-            onEdit={handleAddOrUpdate}
-          />
-
-          {/* Change Password mini-form */}
-          <div
-            className="card"
-            style={{
-              marginTop: 16,
-              padding: 12,
-              borderRadius: 8,
-            }}
+          {/* --- Collapsible: Add EMI / SIP (Editor) --- */}
+          <CollapsibleSection
+            title="Add EMI / SIP or Fix expense"
+            open={openEditor}
+            onToggle={setOpenEditor}
           >
-            <ChangePasswordForm />
-          </div>
+            <div className="recurring-editor">
+              <RecurringItemEditor onSubmit={handleAddOrUpdate} />
+            </div>
+          </CollapsibleSection>
+
+          {/* --- Collapsible: EMI & SIP List --- */}
+          <CollapsibleSection
+            title="EMI & SIP List"
+            open={openList}
+            onToggle={setOpenList}
+          >
+            <RecurringItemList
+              items={items}
+              onDelete={handleDelete}
+              onEdit={handleAddOrUpdate}
+            />
+          </CollapsibleSection>
+
+          {/* --- Collapsible: Change Password --- */}
+          <CollapsibleSection
+            title="Change Password"
+            open={openPassword}
+            onToggle={setOpenPassword}
+          >
+            <div
+              className="card"
+              style={{
+                padding: 12,
+                borderRadius: 8,
+              }}
+            >
+              <ChangePasswordForm />
+            </div>
+          </CollapsibleSection>
         </section>
 
         <footer className="profile-modal__footer">
@@ -475,9 +508,7 @@ export default function Profile() {
               onClick={syncNow}
               disabled={!dirty || syncing || loading}
               style={{ backgroundColor: dirty ? "#10b981" : "#9ca3af" }}
-              title={
-                dirty ? "Sync your changes to the server" : "No changes to sync"
-              }
+              title={dirty ? "Sync your changes to the server" : "No changes to sync"}
             >
               {syncing ? "Syncing…" : "Sync Changes"}
             </button>
