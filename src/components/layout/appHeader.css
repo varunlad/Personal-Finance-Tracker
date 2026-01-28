@@ -1,0 +1,84 @@
+
+.btn-secondary{
+    padding: 8px !important;
+}
+.btn-profile-rtl {
+  /* Put the icon on the right so growth happens to the left */
+  flex-direction: row-reverse;
+  position: relative;
+  overflow: hidden; /* hide the label while collapsed */
+  margin-right: 8px;
+  padding: 8px;
+}
+
+/* Icon remains visible, sits on the right */
+.btn-profile-rtl .btn-icon {
+  display: inline-block;
+  /* Slight spacing between icon and label when revealed */
+  font-size: 16px;
+  line-height: 10px;
+  color: #6aa9ff;
+}
+
+/* Label is initially hidden and zero-width */
+.btn-profile-rtl .btn-label {
+  font-size: 12px;
+  margin-left: 3px;
+  display: inline-block;
+  max-width: 0;
+  opacity: 0;
+  white-space: nowrap;
+  transform: translateX(6px); /* tiny slide-in from under the icon */
+  will-change: max-width, opacity, transform;
+  transition: max-width 200ms ease, opacity 180ms ease, transform 180ms ease;
+}
+
+/* On hover/focus: reveal label and grow leftwards */
+.btn-profile-rtl:hover .btn-label,
+.btn-profile-rtl:focus .btn-label,
+.btn-profile-rtl:focus-visible .btn-label {
+  /* Wide enough for "Profile" (adjust if you localize) */
+  max-width: 120px;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Optional: subtle hover styling */
+.btn-profile-rtl:hover,
+.btn-profile-rtl:focus-visible {
+  background: var(--card);
+}
+
+/* Keyboard accessibility focus ring */
+.btn-profile-rtl:focus-visible {
+  outline: 2px solid #6aa9ff;
+  outline-offset: 2px;
+}
+
+
+@media (hover: none) and (pointer: coarse) {
+  .btn-profile-rtl .btn-label,
+  .btn-logout-ltr .btn-label {
+    display: none !important;   /* hide text */
+  }
+  .btn-profile-rtl .btn-icon,
+  .btn-logout-ltr .btn-icon {
+    margin-left: 0 !important;  /* remove any gap reserved for label */
+  }
+  .btn-profile-rtl,
+  .btn-logout-ltr {
+    transition: none;           /* no hover effects on mobile */
+  }
+}
+
+/* Width-based fallback (for small screens that still report hover) */
+@media (max-width: 640px) {
+  .btn-profile-rtl .btn-label,
+  .btn-logout-ltr .btn-label {
+    display: none !important;
+  }
+  .btn-profile-rtl .btn-icon,
+  .btn-logout-ltr .btn-icon {
+    margin-left: 0 !important;
+  }
+}

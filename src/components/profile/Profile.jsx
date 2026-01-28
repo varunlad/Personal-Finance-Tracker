@@ -374,7 +374,7 @@ export default function Profile() {
     >
       <div className="profile-modal modal-panel" ref={dialogRef}>
         <header className="profile-modal__header">
-          <h2 id="profileModalTitle">Profile</h2>
+          <h2 id="profileModalTitle">👤 Profile</h2>
           <button
             type="button"
             className="icon-btn"

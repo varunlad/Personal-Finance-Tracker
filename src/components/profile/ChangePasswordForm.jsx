@@ -110,7 +110,7 @@ export default function ChangePasswordForm() {
       </div>
 
       <div className="actions-right" style={{ marginTop: 10, textAlign: "right" }}>
-        <button className="btn" type="submit" disabled={loading} style={{ backgroundColor: "#3b82f6" }}>
+        <button className="btn" type="submit" disabled={loading} style={{ backgroundColor: "#583889" }}>
           {loading ? "Updating…" : "Update Password"}
         </button>
       </div>

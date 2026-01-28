@@ -1,12 +1,10 @@
-
 // src/components/layout/AppHeader.jsx
-// import { useTheme } from '../../context/theme-context'
 import { useAuth } from "../../context/auth-context";
 import logo from "../../assets/logo.png";
 import { useProfileModal } from "../../context/ProfileModalProvider";
+import "./appHeader.css";
 
 export default function AppHeader({ title }) {
-  // const { theme, toggleTheme } = useTheme()
   const { user, logout } = useAuth();
   const { openProfile } = useProfileModal();
 
@@ -20,27 +18,24 @@ export default function AppHeader({ title }) {
         <>
           <button
             type="button"
-            className="btn-secondary"
+            className="btn-secondary btn-profile-rtl"
             onClick={openProfile}
             aria-label="Open Profile"
           >
-            Profile
+            <span className="btn-icon" aria-hidden="true">👤</span>
+            <span className="btn-label">Profile</span>
           </button>
 
           <button
             type="button"
             className="btn-secondary"
             onClick={logout}
+            aria-label="Logout"
           >
-            Logout
+            ↩︎
           </button>
         </>
       )}
-
-      {/* <button type="button" className="btn-secondary" onClick={toggleTheme}>
-        {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
-      </button> */}
     </header>
   );
 }
-``

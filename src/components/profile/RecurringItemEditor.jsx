@@ -241,7 +241,7 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
       )}
 
       <div className="actions-right" style={{marginTop:15}}>
-        <button type="submit" style={{backgroundColor:'#3b82f6'}} className="btn" disabled={!canSubmit}>
+        <button type="submit" style={{backgroundColor:'#583889'}} className="btn" disabled={!canSubmit}>
           {editItem ? 'Update' : 'Add'}
         </button>
       </div>

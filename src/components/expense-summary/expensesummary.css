@@ -1,18 +1,15 @@
-
 /* Card & layout */
 .expense-summary.card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.10);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
   transition: box-shadow 200ms ease, transform 180ms ease;
   min-height: 500px;
+  position: relative;
 }
-.expense-summary.card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-}
+
 .summary-header {
   display: grid;
   gap: 6px;
@@ -37,8 +34,14 @@
   align-items: center;
   margin-bottom: 14px;
 }
-.date-field { display: grid; gap: 6px; }
-.sep { align-self: center; color: var(--muted); }
+.date-field {
+  display: grid;
+  gap: 6px;
+}
+.sep {
+  align-self: center;
+  color: var(--muted);
+}
 
 /* Inputs */
 input[type="date"] {
@@ -62,7 +65,11 @@ input[type="date"]:focus {
 
 /* Buttons */
 .btn-row,
-.date-actions { display: inline-flex; gap: 10px; align-items: center; }
+.date-actions {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
 .btn {
   padding: 7px 12px;
   border: 1px solid var(--border);
@@ -72,20 +79,42 @@ input[type="date"]:focus {
   cursor: pointer;
   transition: transform 140ms ease, box-shadow 160ms ease, background 160ms ease;
 }
-.btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
-.btn:active { transform: translateY(0); box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-.btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
-.btn.primary:hover { opacity: 0.95; }
-.btn.ghost { background: transparent; border-color: var(--border); }
-.btn[disabled] { opacity: 0.55; cursor: not-allowed; box-shadow: none; transform: none; }
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+.btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+.btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.btn.primary:hover {
+  opacity: 0.95;
+}
+.btn.ghost {
+  background: transparent;
+  border-color: var(--border);
+}
+.btn[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
 
-.summary-loader{
-    display: flex; justify-content: center; padding: 12px; padding-bottom: 0px;
+.summary-loader {
+  padding: 12px;
+  padding-bottom: 0px;
+  position: absolute;
+  left: 45%;
+  top: 50%;
 }
 
 /* Chart surface */
-
-
 
 /* ================= Segmented Control (Pill Switch) ================= */
 .segmented {
@@ -95,19 +124,17 @@ input[type="date"]:focus {
   --seg-muted: var(--muted, #6b7280);
 
   /* Active colors (inherits your --primary if defined) */
-  --seg-active-bg: var(--primary, #3b82f6);
+  --seg-active-bg: var(--primary, #583889);
   --seg-active-fg: var(--primary-contrast, #ffffff);
 
   display: inline-flex;
   align-items: center;
-  gap: 6px;                 /* subtle spacing between pills */
-  padding: 4px;             /* inner padding creates the pill rail */
-  border-radius: 12px;      /* pill */
+  gap: 6px; /* subtle spacing between pills */
+  padding: 4px; /* inner padding creates the pill rail */
+  border-radius: 12px; /* pill */
   background: var(--seg-bg);
   border: 1px solid var(--seg-border);
-  box-shadow:
-    0 1px 2px rgba(0,0,0,0.04),
-    0 2px 8px rgba(0,0,0,0.03);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.03);
   backdrop-filter: saturate(120%) blur(2px);
 }
 
@@ -119,21 +146,18 @@ input[type="date"]:focus {
   color: var(--seg-muted);
   font-weight: 600;
   font-size: 14px;
-  letter-spacing: .2px;
+  letter-spacing: 0.2px;
   padding: 8px 14px;
-  border-radius: 10px;      /* individual segment rounding */
+  border-radius: 10px; /* individual segment rounding */
   cursor: pointer;
   line-height: 1;
-  transition:
-    color .18s ease,
-    background .18s ease,
-    box-shadow .18s ease,
-    transform .04s ease;
+  transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease,
+    transform 0.04s ease;
   outline: none;
 }
 
 .seg:hover {
-  background: color-mix(in srgb, var(--primary, #3b82f6) 8%, transparent);
+  background: color-mix(in srgb, var(--primary, #583889) 8%, transparent);
   color: var(--seg-fg);
 }
 
@@ -145,15 +169,15 @@ input[type="date"]:focus {
 .seg.active {
   background: var(--seg-active-bg);
   color: var(--seg-active-fg);
-  box-shadow:
-    0 6px 16px color-mix(in srgb, var(--seg-active-bg) 30%, transparent),
+  box-shadow: 0 6px 16px
+      color-mix(in srgb, var(--seg-active-bg) 30%, transparent),
     inset 0 -1px 0 color-mix(in srgb, #000 10%, transparent);
 }
 
 /* Keyboard accessibility */
 .seg:focus-visible {
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--seg-active-bg) 40%, transparent),
+  box-shadow: 0 0 0 2px
+      color-mix(in srgb, var(--seg-active-bg) 40%, transparent),
     0 0 0 4px color-mix(in srgb, var(--seg-active-bg) 20%, transparent);
 }
 
@@ -178,9 +202,11 @@ input[type="date"]:focus {
   }
 }
 
-
 /* Empty state & footer */
-.inline-error { margin: 8px 0; color: var(--red); }
+.inline-error {
+  margin: 8px 0;
+  color: var(--red);
+}
 .empty-state {
   display: grid;
   gap: 8px;
@@ -199,10 +225,20 @@ input[type="date"]:focus {
   align-items: center;
   margin-top: 14px;
 }
-.metric { font-weight: 600; color: var(--text); }
-.metric-value { font-size: 1.25rem; font-weight: 800; color: var(--text); }
+.metric {
+  font-weight: 600;
+  color: var(--text);
+}
+.metric-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text);
+}
 
 /* Responsive */
 @media (max-width: 768px) {
-  .date-row { grid-template-columns: 1fr; align-items: start; }
+  .date-row {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
 }
