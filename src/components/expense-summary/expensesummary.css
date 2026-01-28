@@ -91,6 +91,7 @@ input[type="date"]:focus {
   background: var(--primary);
   border-color: var(--primary);
   color: #fff;
+  padding: 8px 12px;
 }
 .btn.primary:hover {
   opacity: 0.95;

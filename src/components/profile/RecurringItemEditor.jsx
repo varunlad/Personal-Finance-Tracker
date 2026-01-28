@@ -1,6 +1,5 @@
-
 // src/components/profile/RecurringItemEditor.jsx
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useId } from 'react'
 
 const RECURRENCE_OPTIONS = [
   { value: 'monthly', label: 'Monthly' },
@@ -15,6 +14,20 @@ const TYPE_OPTIONS = [
   { value: 'SIP', label: 'SIP' },
   { value: 'Fixed', label: 'Fixed Expense' },
 ]
+
+// --- helpers for dates ---
+function todayYMD() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+function clampToToday(ymd) {
+  if (!ymd) return ''
+  const t = todayYMD()
+  return ymd > t ? t : ymd
+}
 
 export default function RecurringItemEditor({ onSubmit, editItem }) {
   const [form, setForm] = useState({
@@ -34,13 +47,21 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
     },
   })
 
+  // unique id prefix for this component instance
+  const uid = useId()
+  const fid = (name) => `${uid}-${name}`
+
+  // Always compute "today" once per render
+  const TODAY = todayYMD()
+
   useEffect(() => {
     if (editItem) {
+      // Merge edit item; do not auto-change existing future dates here,
+      // but any user change will clamp via onChange handlers below.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm((prev) => ({
         ...prev,
         ...editItem,
-        // build a single, normalized stepUp from editItem with sane defaults
         stepUp: {
           enabled: editItem?.stepUp?.enabled ?? false,
           mode: editItem?.stepUp?.mode ?? 'amount',
@@ -56,8 +77,14 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
     const amt = Number(form.amount)
     const hasBase = form.type && form.label.trim() && amt > 0
     const hasStart = !!form.startDate || form.recurrence === 'one-time'
-    return hasBase && hasStart
-  }, [form])
+    // extra guard: no future dates allowed
+    const noFutureDates =
+      (!form.startDate || form.startDate <= TODAY) &&
+      (!form.endDate || form.endDate <= TODAY) &&
+      (!form.stepUp?.from || form.stepUp.from <= TODAY)
+
+    return hasBase && hasStart && noFutureDates
+  }, [form, TODAY])
 
   const update = (patch) => setForm((f) => ({ ...f, ...patch }))
   const updateStep = (patch) =>
@@ -66,19 +93,25 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!canSubmit) return
+
     const id = form.id || `rec_${Date.now()}`
     const normalized = {
       ...form,
       id,
+      // clamp any date fields one last time for safety
+      startDate: clampToToday(form.startDate),
+      endDate: clampToToday(form.endDate || ''),
       amount: Number(form.amount),
       stepUp: {
         ...form.stepUp,
         value: form.stepUp.enabled ? Number(form.stepUp.value || 0) : 0,
-        from: form.stepUp.enabled ? (form.stepUp.from || form.startDate) : '',
+        from: form.stepUp.enabled
+          ? clampToToday(form.stepUp.from || form.startDate)
+          : '',
       },
-      endDate: form.endDate || '',
     }
     onSubmit?.(normalized)
+
     if (!editItem) {
       setForm({
         id: '',
@@ -100,8 +133,12 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
     <form className="recurring-editor" onSubmit={handleSubmit}>
       <div className="form-grid">
         <div className="form-row">
-          <label htmlFor="ri-type">Type</label>
-          <select id="ri-type" value={form.type} onChange={(e) => update({ type: e.target.value })}>
+          <label htmlFor={fid('type')}>Type</label>
+          <select
+            id={fid('type')}
+            value={form.type}
+            onChange={(e) => update({ type: e.target.value })}
+          >
             {TYPE_OPTIONS.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
@@ -109,9 +146,9 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
         </div>
 
         <div className="form-row">
-          <label htmlFor="ri-label">Label</label>
+          <label htmlFor={fid('label')}>Label</label>
           <input
-            id="ri-label"
+            id={fid('label')}
             type="text"
             placeholder="e.g., LIC / Home Loan / SIP-Bluechip"
             value={form.label}
@@ -120,9 +157,9 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
         </div>
 
         <div className="form-row">
-          <label htmlFor="ri-amount">Amount</label>
+          <label htmlFor={fid('amount')}>Amount</label>
           <input
-            id="ri-amount"
+            id={fid('amount')}
             type="number"
             min="0"
             step="1"
@@ -133,9 +170,9 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
         </div>
 
         <div className="form-row">
-          <label htmlFor="ri-recurrence">Recurrence</label>
+          <label htmlFor={fid('recurrence')}>Recurrence</label>
           <select
-            id="ri-recurrence"
+            id={fid('recurrence')}
             value={form.recurrence}
             onChange={(e) => update({ recurrence: e.target.value })}
           >
@@ -146,28 +183,32 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
         </div>
 
         <div className="form-row">
-          <label htmlFor="ri-startDate">
+          <label htmlFor={fid('startDate')}>
             {form.recurrence === 'one-time' ? 'Date' : 'Start Date'}
           </label>
           <input
-            id="ri-startDate"
+            id={fid('startDate')}
             type="date"
+            max={TODAY}
             value={form.startDate || ''}
-            onChange={(e) => update({ startDate: e.target.value })}
+            onChange={(e) => update({ startDate: clampToToday(e.target.value) })}
           />
           {form.recurrence !== 'one-time' && (
-            <span style={{fontSize:10}} className="muted">Anchor month/day is taken from this date.</span>
+            <span style={{fontSize:10}} className="muted">
+              Anchor month/day is taken from this date.
+            </span>
           )}
         </div>
 
         {showEndDate && (
           <div className="form-row">
-            <label htmlFor="ri-endDate">End Date (stop)</label>
+            <label htmlFor={fid('endDate')}>End Date (stop)</label>
             <input
-              id="ri-endDate"
+              id={fid('endDate')}
               type="date"
+              max={TODAY}
               value={form.endDate || ''}
-              onChange={(e) => update({ endDate: e.target.value })}
+              onChange={(e) => update({ endDate: clampToToday(e.target.value) })}
             />
           </div>
         )}
@@ -175,8 +216,9 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
 
       {showStepUp && (
         <div className="stepup-row" style={{marginTop:10}}>
-          <label className="stepup-toggle">
+          <label className="stepup-toggle" htmlFor={fid('stepup-enabled')}>
             <input
+              id={fid('stepup-enabled')}
               type="checkbox"
               checked={form.stepUp.enabled}
               onChange={(e) => updateStep({ enabled: e.target.checked })}
@@ -188,9 +230,9 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
           {form.stepUp.enabled && (
             <div className="stepup-grid">
               <div className="form-row">
-                <label htmlFor="su-mode">Mode</label>
+                <label htmlFor={fid('su-mode')}>Mode</label>
                 <select
-                  id="su-mode"
+                  id={fid('su-mode')}
                   value={form.stepUp.mode}
                   onChange={(e) => updateStep({ mode: e.target.value })}
                 >
@@ -200,9 +242,9 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
               </div>
 
               <div className="form-row">
-                <label htmlFor="su-every">Every</label>
+                <label htmlFor={fid('su-every')}>Every</label>
                 <select
-                  id="su-every"
+                  id={fid('su-every')}
                   value={form.stepUp.every}
                   onChange={(e) => updateStep({ every: e.target.value })}
                 >
@@ -212,11 +254,11 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
               </div>
 
               <div className="form-row">
-                <label htmlFor="su-value">
+                <label htmlFor={fid('su-value')}>
                   {form.stepUp.mode === 'amount' ? 'Amount (₹)' : 'Percent (%)'}
                 </label>
                 <input
-                  id="su-value"
+                  id={fid('su-value')}
                   type="number"
                   min="0"
                   step="1"
@@ -226,12 +268,13 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
               </div>
 
               <div className="form-row">
-                <label htmlFor="su-from">From (optional)</label>
+                <label htmlFor={fid('su-from')}>From (optional)</label>
                 <input
-                  id="su-from"
+                  id={fid('su-from')}
                   type="date"
+                  max={TODAY}
                   value={form.stepUp.from || ''}
-                  onChange={(e) => updateStep({ from: e.target.value })}
+                  onChange={(e) => updateStep({ from: clampToToday(e.target.value) })}
                 />
                 <span className="muted">Default: Start Date</span>
               </div>
@@ -241,11 +284,16 @@ export default function RecurringItemEditor({ onSubmit, editItem }) {
       )}
 
       <div className="actions-right" style={{marginTop:15}}>
-        <button type="submit" style={{backgroundColor:'#583889'}} className="btn" disabled={!canSubmit}>
+        <button
+          type="submit"
+          style={{backgroundColor:'#583889'}}
+          className="btn"
+          disabled={!canSubmit}
+          id={fid('submit')}
+        >
           {editItem ? 'Update' : 'Add'}
         </button>
       </div>
     </form>
   )
 }
-``

@@ -32,7 +32,7 @@ export default function AppHeader({ title }) {
             onClick={logout}
             aria-label="Logout"
           >
-            ↩︎
+            {"➜]"}
           </button>
         </>
       )}
