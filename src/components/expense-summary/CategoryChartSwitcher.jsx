@@ -1,44 +1,41 @@
-
 import { useMemo, useState } from "react";
 import Chart from "react-apexcharts";
 import { formatINR } from "../../utils/expenseUtils";
 
 /**
  * Props:
- * - labels: string[] (category names shown on chart)
- * - values: number[] (amounts per category)
- * - colors: string[] (fallback palette; we override with category mapping when possible)
+ * - labels: string[]
+ * - values: number[]
+ * - colors: string[]
  * - currencySymbol: string
  * - defaultType: "donut" | "bar"
  * - themeMode: "dark" | "light"
- * - totalVal?: number (optional explicit total for footer metric in bar chart)
+ * - totalVal?: number
  */
 export default function CategoryChartSwitcher({
   labels = [],
   values = [],
-  // Fallback palette if a label isn't recognized as a known category
   colors = ["var(--primary)", "#00B894", "#E17055", "#0984E3", "#D63031"],
   currencySymbol = "₹",
   defaultType = "donut",
   themeMode = "dark",
-  totalVal, // optional override for footer total in bar
+  totalVal,
 }) {
-  const [chartType, setChartType] = useState(
-    defaultType === "bar" ? "bar" : "donut"
-  );
+  const [chartType, setChartType] = useState(defaultType === "bar" ? "bar" : "donut");
+
+  // Orientation toggle for Bar
+  const [barHorizontal, setBarHorizontal] = useState(true);
 
   // Theme
   const isDark = String(themeMode).toLowerCase() === "dark";
   const textColor = "var(--text)";
   const borderColor = "var(--border)";
 
-  // --- Category color map (authoritative) ---
-  // We use internal keys; labels coming from backend are normalized to these keys below.
+  // --- Category color map ---
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const CATEGORY_COLORS = {
-    creditCard: "#6366F1", // NEW: Credit Card (Indigo 500)
-    emi: "#F59E0B",        // NEW: EMIs (Amber 500)
-
+    creditCard: "#6366F1",
+    emi: "#F59E0B",
     mutualFund: "#53A9EB",
     stock: "#588352FF",
     shopping: "#E955DCFF",
@@ -47,13 +44,11 @@ export default function CategoryChartSwitcher({
     rentBills: "#E98E52FF",
   };
 
-  // Normalize external label strings to internal keys used in your app.
-  // Supports exact labels "Credit Card" and "EMIs" from backend.
+  // Normalize external label strings to internal keys used in your app
   const normalizeCat = (c) => {
     const raw = String(c || "other").trim();
     if (raw === "Credit Card") return "creditCard";
     if (raw === "EMIs") return "emi";
-
     const s = raw.toLowerCase();
     if (s.includes("mutual")) return "mutualFund";
     if (s.includes("stock")) return "stock";
@@ -69,10 +64,7 @@ export default function CategoryChartSwitcher({
     () => (Array.isArray(values) ? values.map((v) => Number(v) || 0) : []),
     [values]
   );
-  const safeTotal = useMemo(
-    () => safeValues.reduce((a, b) => a + b, 0),
-    [safeValues]
-  );
+  const safeTotal = useMemo(() => safeValues.reduce((a, b) => a + b, 0), [safeValues]);
 
   // Map labels -> colors using the category dictionary; fallback to provided colors if unknown
   const mappedColors = useMemo(() => {
@@ -83,14 +75,19 @@ export default function CategoryChartSwitcher({
     });
   }, [labels, colors, CATEGORY_COLORS]);
 
-  // Series per type
+  // --- SERIES per type ---
+  // IMPORTANT: For BAR we provide data as { x: <category>, y: <value> }
   const seriesForType = useMemo(() => {
     if (chartType === "bar") {
-      return [{ name: "Amount", data: safeValues }];
+      const barData = labels.map((lbl, i) => ({
+        x: lbl,
+        y: safeValues[i] || 0,
+      }));
+      return [{ name: "Amount", data: barData }];
     }
-    // donut
+    // donut expects an array of numbers
     return safeValues;
-  }, [chartType, safeValues]);
+  }, [chartType, labels, safeValues]);
 
   const base = useMemo(
     () => ({
@@ -101,15 +98,14 @@ export default function CategoryChartSwitcher({
         animations: { enabled: true },
         foreColor: textColor,
       },
-      colors: mappedColors, // <- use our mapped colors
+      colors: mappedColors,
       legend: {
+        // hide legend for bar charts to avoid odd numeric legends with distributed bars
+        show: chartType !== "bar",
         position: "bottom",
         labels: { colors: textColor },
       },
-      grid: {
-        borderColor: borderColor,
-        strokeDashArray: 4,
-      },
+      grid: { borderColor: borderColor, strokeDashArray: 4 },
       tooltip: {
         theme: isDark ? "dark" : "light",
         y: {
@@ -125,35 +121,45 @@ export default function CategoryChartSwitcher({
 
   const options = useMemo(() => {
     if (chartType === "bar") {
+      // With data objects {x, y}, Apex chooses correct axes automatically.
+      // We only need to:
+      //  - set horizontal flag
+      //  - format the numeric axis ticks (X for horizontal, Y for vertical)
+      const numLabelsStyle = { colors: Array(5).fill(textColor) };
+
+      const xNumeric = {
+        min: 0,
+        axisBorder: { color: borderColor },
+        axisTicks: { color: borderColor },
+        labels: {
+          style: numLabelsStyle,
+          formatter: (val) =>
+            `${currencySymbol}${(Number(val) || 0).toLocaleString("en-IN")}`,
+        },
+      };
+      const yNumeric = {
+        min: 0,
+        labels: {
+          style: numLabelsStyle,
+          formatter: (val) =>
+            `${currencySymbol}${(Number(val) || 0).toLocaleString("en-IN")}`,
+        },
+      };
+
       return {
         ...base,
         plotOptions: {
           bar: {
-            horizontal: true,
-            borderRadius: 6,
-            distributed: true, // <- color each bar from colors[]
+            horizontal: barHorizontal,
+            borderRadius: 10,
+            borderRadiusApplication: "end",
+            distributed: true,
           },
         },
         dataLabels: { enabled: false },
-        // In horizontal bar:
-        // xaxis -> VALUES (currency formatting)
-        // yaxis -> CATEGORIES (plain text)
-        xaxis: {
-          min: 0,
-          axisBorder: { color: borderColor },
-          axisTicks: { color: borderColor },
-          labels: {
-            style: { colors: Array(5).fill(textColor) },
-            formatter: (val) =>
-              `${currencySymbol}${(Number(val) || 0).toLocaleString("en-IN")}`,
-          },
-        },
-        yaxis: {
-          categories: labels,
-          labels: {
-            style: { colors: Array(labels.length).fill(textColor) },
-          },
-        },
+        // Numeric axis formatter depends on orientation:
+        xaxis: barHorizontal ? xNumeric : {},
+        yaxis: barHorizontal ? {} : yNumeric,
       };
     }
 
@@ -200,13 +206,14 @@ export default function CategoryChartSwitcher({
     currencySymbol,
     safeValues,
     safeTotal,
+    barHorizontal,
   ]);
 
-  const footerTotal =
-    typeof totalVal === "number" ? totalVal : safeTotal;
+  const footerTotal = typeof totalVal === "number" ? totalVal : safeTotal;
 
   return (
     <div className="chart-switcher" style={{ minHeight: 412 }}>
+      {/* Type switch */}
       <div className="segmented">
         <button
           className={chartType === "donut" ? "seg active" : "seg"}
@@ -222,8 +229,38 @@ export default function CategoryChartSwitcher({
         </button>
       </div>
 
+      {/* Orientation toggle: only for Bar */}
+      {chartType === "bar" && (
+        <div
+          className="segmented"
+          style={{ marginTop: 8, display: "inline-flex", gap: 8 }}
+          role="group"
+          aria-label="Bar orientation"
+        >
+          <button
+            className={`seg ${barHorizontal ? "active" : ""}`}
+            onClick={() => setBarHorizontal(true)}
+            aria-pressed={barHorizontal}
+            title="Horizontal bars"
+          >
+            Horizontal
+          </button>
+          <button
+            className={`seg ${!barHorizontal ? "active" : ""}`}
+            onClick={() => setBarHorizontal(false)}
+            aria-pressed={!barHorizontal}
+            title="Vertical bars"
+          >
+            Vertical
+          </button>
+        </div>
+      )}
+
       <div className="themed-surface" style={{ marginTop: 12 }}>
+        {/* key => clean re-mount so Apex updates axis types correctly
+            (especially when flipping orientation) */}
         <Chart
+          key={`type-${chartType}-orient-${barHorizontal ? "h" : "v"}`}
           options={options}
           series={seriesForType}
           type={chartType}

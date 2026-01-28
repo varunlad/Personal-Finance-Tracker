@@ -189,6 +189,47 @@ input[type="date"]:focus {
   --seg-muted: color-mix(in srgb, var(--text, #e5e7eb) 70%, transparent);
 }
 
+/* --- Add Expense (+) button --- */
+.add-expense-btn {
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-weight: 700;
+  background: var(--accent, #6366f1);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: transform 120ms ease, background 160ms ease;
+}
+
+.add-expense-btn:hover,
+.add-expense-btn:focus-visible {
+  background: #5558f5;
+  transform: translateY(-1px);
+}
+
+.add-expense-btn:focus-visible {
+  outline: 2px solid #6aa9ff;
+  outline-offset: 2px;
+}
+
+/* OPTIONAL: make '+' a floating action button on small screens */
+
+@media (max-width: 640px) {
+  .add-expense-btn {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 30;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  }
+}
+
+
 @media (max-width: 480px) {
   .segmented {
     gap: 4px;

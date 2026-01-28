@@ -1,4 +1,4 @@
-
+// src/components/expense-analysis/ExpenseAnalysis.jsx
 import { useMemo, useState, useEffect } from "react";
 import "./ExpenseAnalysis.css";
 
@@ -8,6 +8,9 @@ import DayTable from "./DayTable.jsx";
 import EditorModal from "./EditorModal.jsx";
 
 import { upsertDayExpenses } from "../../api/expenses";
+import { onRequestOpenEditor } from "../features/editor-bus.js";
+
+/* 🔽 NEW: editor bus subscription */
 
 export default function ExpenseAnalysis({
   dayGroups = [],
@@ -180,6 +183,7 @@ export default function ExpenseAnalysis({
   const [saveError, setSaveError] = useState("");
 
   // ✅ Open editor with COALESCED rows (one per category)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   function openEditor(dayNum) {
     if (!canEditDay(year, month, dayNum)) return;
     const dateStr = toYMD(year, month, dayNum);
@@ -306,34 +310,33 @@ export default function ExpenseAnalysis({
     })();
   }
 
+  /* 🔽 NEW: listen for "open editor" requests from ExpenseSummary (or anywhere) */
   useEffect(() => {
-    const isOpen = editingDay !== null;
-    if (!isOpen) return;
+    const unsubscribe = onRequestOpenEditor((date) => {
+      if (!(date instanceof Date) || isNaN(date)) return;
 
-    const body = document.body;
-    const prevOverflow = body.style.overflow;
-    const prevPaddingRight = body.style.paddingRight;
+      const y = date.getFullYear();
+      const m = date.getMonth() + 1;
+      const d = date.getDate();
 
-    const scrollBarWidth = window.innerWidth - document.documentElement.clientWidth;
-    body.style.overflow = "hidden";
-    if (scrollBarWidth > 0) {
-      body.style.paddingRight = `${scrollBarWidth}px`;
-    }
+      const switchMonth = y !== year || m !== month;
 
-    const preventTouchScroll = (e) => {
-      const modalPanel = document.querySelector(".ea-modal");
-      if (modalPanel && modalPanel.contains(e.target)) return;
-      e.preventDefault();
-    };
+      if (switchMonth) {
+        setYear(y);
+        setMonth(m);
+        // Open after state updates (microtask)
+        setTimeout(() => openEditor(d), 0);
+      } else {
+        openEditor(d);
+      }
+    });
 
-    document.addEventListener("touchmove", preventTouchScroll, { passive: false });
+    return unsubscribe;
+  }, [year, month, openEditor]); // re-evaluate if year/month changes
 
-    return () => {
-      body.style.overflow = prevOverflow;
-      body.style.paddingRight = prevPaddingRight;
-      document.removeEventListener("touchmove", preventTouchScroll);
-    };
-  }, [editingDay]);
+  useEffect(() => {
+    if (saveError) console.warn("ExpenseAnalysis saveError:", saveError);
+  }, [saveError]);
 
   const monthName = new Intl.DateTimeFormat("en", { month: "long" }).format(
     new Date(year, month - 1, 1)
@@ -351,10 +354,6 @@ export default function ExpenseAnalysis({
     rentBills: pct(monthByCategory.rentBills, monthTotal),
     other: pct(monthByCategory.other, monthTotal),
   };
-
-  useEffect(() => {
-    if (saveError) console.warn("ExpenseAnalysis saveError:", saveError);
-  }, [saveError]);
 
   return (
     <section className="card">

@@ -50,7 +50,7 @@
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 6px;
-  strong{
+  strong {
     white-space: nowrap;
   }
 }
@@ -255,7 +255,7 @@
   background: color-mix(in srgb, var(--card) 92%, transparent);
   color: var(--text);
 }
-.ea-category-select{
+.ea-category-select {
   width: 100%;
 }
 
@@ -307,7 +307,6 @@
   border: none;
   border-radius: 10px;
   padding: 10px 12px;
-  font-weight: 600;
   cursor: pointer;
 }
 .btn-primary:hover {
@@ -448,10 +447,10 @@
     border-radius: 8px;
     font-size: 14px;
   }
-  .ea-note-input{
+  .ea-note-input {
     width: 100px;
   }
-  .ea-edit-table select{
+  .ea-edit-table select {
     width: 110px;
   }
 
@@ -486,4 +485,14 @@
     border-radius: 8px;
     font-size: 14px;
   }
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+.modal-title {
+  margin-bottom: 0px;
 }
