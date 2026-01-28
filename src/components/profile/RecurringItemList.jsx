@@ -78,7 +78,7 @@ export default function RecurringItemList({ items, onDelete, onEdit }) {
                   <td>{it.nextDue}</td>
                   <td className="row-actions">
                     <button className="icon-btn" onClick={() => setEditing(it)} aria-label="Edit">✎</button>
-                    <button className="icon-btn danger" onClick={() => onDelete?.(it.id)} aria-label="Delete">🗑</button>
+                    <button className="icon-btn danger" onClick={() => onDelete?.(it.id)} aria-label="Delete">🗑️</button>
                   </td>
                 </tr>
               ))

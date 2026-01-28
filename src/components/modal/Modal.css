@@ -19,6 +19,8 @@
   padding: 16px;
   max-height: calc(100vh - 32px); /* Prevent overflow on small screens */
   overflow-y: auto; /* Allow scrolling inside modal if content is long */
+  transform: translateY(16px) scale(0.98);
+  animation: modalIn 180ms ease forwards;
 }
 
 .modal-title {
@@ -105,5 +107,16 @@
   .modal-actions button {
     font-size: 14px;
     padding: 6px 10px;
+  }
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

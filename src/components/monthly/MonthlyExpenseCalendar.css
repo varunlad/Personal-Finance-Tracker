@@ -1,4 +1,3 @@
-
 /* ============ Header ============ */
 
 .cal-header {
@@ -42,7 +41,7 @@
 /* ============ Day Cells ============ */
 
 .cal-cell {
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 8px;
   padding: 8px;
   background: var(--card);
@@ -60,7 +59,9 @@
   border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
   background: color-mix(in srgb, var(--primary) 8%, var(--card));
 }
-.cal-cell:focus { outline: none; }
+.cal-cell:focus {
+  outline: none;
+}
 .cal-cell:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--primary) 60%, #ffffff);
   outline-offset: 2px;
@@ -94,11 +95,6 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
-}
-
-/* Subtle emphasis for days that have any expense (no layout shift) */
-.has-expense {
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
 }
 
 /* ============ Future Dates ============ */
@@ -170,6 +166,122 @@
 .item-amount {
   font-weight: 600;
 }
+.cal-daynum-badge {
+  text-align: left;
+  color: #ffffff;
+}
+
+/* ============ NEW: Day Cell Wrapper & Add (+) Overlay ============ */
+
+.cal-cell-wrap {
+  position: relative; /* needed for the + overlay to anchor */
+  border: 1px solid var(--border);
+  box-shadow: inset 0 0 0 2px
+    color-mix(in srgb, var(--primary) 20%, transparent);
+  border-radius: 8px;
+}
+
+.cal-add-btn {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  width: 25px;
+  height: 25px;
+  font-size: 15px;
+  border-radius: 0;
+  border-top-right-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  opacity: 0;
+  transform: scale(0.92);
+  transition: opacity 0.14s ease, transform 0.14s ease, background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* Reveal + on hover/focus of the cell (desktop) */
+.cal-cell-wrap:hover .cal-add-btn,
+.cal-cell-wrap:focus-within .cal-add-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.cal-add-btn:hover,
+.cal-add-btn:focus-visible {
+  background: color-mix(in srgb, var(--primary) 85%, #ffffff 15%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.cal-add-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 60%, #ffffff);
+  outline-offset: 2px;
+}
+
+.cal-add-btn:disabled {
+  background: color-mix(in srgb, var(--border) 70%, #ffffff 30%);
+  color: color-mix(in srgb, var(--text) 50%, #ffffff 50%);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Touch devices: no hover—keep the + visible */
+@media (hover: none) and (pointer: coarse) {
+  .cal-add-btn {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ============ NEW: Add Expense Form (Modal) ============ */
+
+.add-sep {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 12px 0;
+}
+
+.add-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+}
+
+.add-form-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.add-form-row--note {
+  grid-column: 1 / -1;
+}
+
+.add-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.add-input,
+.add-select {
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: var(--card);
+  color: var(--text);
+}
+
+.add-actions {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+}
 
 /* ============ Responsive ============ */
 
@@ -213,10 +325,26 @@
   .cal-cat-amt {
     display: none;
   }
-  .cal-cat-badge.cal-cat-more{
+  .cal-cat-badge.cal-cat-more {
     background: transparent;
   }
-  .cal-catrow{
+  .cal-catrow {
     gap: 6px;
+  }
+
+  /* Make the + a touch-friendly size on small screens */
+  .cal-add-btn {
+    top: 0px;
+    right: 0px;
+    width: 16px;
+    height: 16px;
+    font-size: 15px;
+    border-radius: 0;
+    border-top-right-radius: 8px;
+  }
+
+  /* Stack the add form fields on a single column if space is tight */
+  .add-form {
+    grid-template-columns: 1fr;
   }
 }
