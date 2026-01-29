@@ -37,6 +37,8 @@
 .date-field {
   display: grid;
   gap: 6px;
+  height: 33px;
+  width: 130px;
 }
 .sep {
   align-self: center;
@@ -226,10 +228,9 @@ input[type="date"]:focus {
     right: 16px;
     bottom: 16px;
     z-index: 30;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
   }
 }
-
 
 @media (max-width: 480px) {
   .segmented {
@@ -272,8 +273,8 @@ input[type="date"]:focus {
   color: var(--text);
 }
 .metric-value {
-  font-size: 1.25rem;
-  font-weight: 800;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--text);
 }
 
