@@ -1,23 +1,43 @@
-
+// src/components/expense-analysis/HeaderControls.jsx
 export default function HeaderControls({
   year,
   month,
   expenses,
-  setYear,
-  setMonth,
   parseYMD,
+  onChangeYM, // (y, m) => void
 }) {
+  const MIN_YEAR = 2025;
+
+  // Collect all years present in data
   const dataYears = Array.from(
     new Set(expenses.map((e) => parseYMD(e.date).y))
   ).sort((a, b) => a - b);
+
   const currentYear = new Date().getFullYear();
 
-  // Ensure dropdown shows current year and the currently selected year too
-  const years = Array.from(new Set([...dataYears, currentYear, year])).sort(
-    (a, b) => a - b
-  );
+  // Build the final set of years:
+  // - at least from 2025
+  // - include current year
+  // - include the currently selected year (so the dropdown always shows it)
+  let yearsSet = new Set([...dataYears, currentYear, year]);
+
+  // Filter out anything before 2025 and sort ascending
+  const years = Array.from(yearsSet)
+    .filter((y) => y >= MIN_YEAR)
+    .sort((a, b) => a - b);
 
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+  // If the user selects a year earlier than MIN_YEAR from anywhere else in the app,
+  // clamp it here as well (defensive). This keeps UI consistent.
+  const handleYearChange = (e) => {
+    const nextYear = Math.max(MIN_YEAR, Number(e.target.value));
+    onChangeYM?.(nextYear, month);
+  };
+
+  const handleMonthChange = (e) => {
+    onChangeYM?.(year, Number(e.target.value));
+  };
 
   return (
     <div className="ea-header">
@@ -26,10 +46,7 @@ export default function HeaderControls({
       </div>
       <div className="ea-controls">
         <label className="ea-control">
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-          >
+          <select value={year} onChange={handleYearChange}>
             {years.map((y) => (
               <option key={y} value={y}>
                 {y}
@@ -39,10 +56,7 @@ export default function HeaderControls({
         </label>
 
         <label className="ea-control">
-          <select
-            value={month}
-            onChange={(e) => setMonth(Number(e.target.value))}
-          >
+          <select value={month} onChange={handleMonthChange}>
             {months.map((m) => (
               <option key={m} value={m}>
                 {new Intl.DateTimeFormat("en", { month: "short" }).format(

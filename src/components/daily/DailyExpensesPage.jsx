@@ -1,4 +1,4 @@
-
+// src/components/daily-expenses/DailyExpensesPage.jsx
 import { useEffect, useState } from "react";
 import MonthlyExpenseCalendar from "../monthly/MonthlyExpenseCalendar";
 import ExpenseAnalysis from "../expense-analysis/ExpenseAnalysis";
@@ -12,6 +12,9 @@ export default function DailyExpensesPage() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
 
+  const MIN_YEAR = 2025; // 🔒 enforce 2025+
+  const MIN_YM = { year: MIN_YEAR, month: 1 };
+
   // 🔒 Stable baseline for ExpenseSummary; starts empty and updates on edits/fetch
   const [summaryDayGroups, setSummaryDayGroups] = useState([]);
 
@@ -22,9 +25,17 @@ export default function DailyExpensesPage() {
   const [error, setError] = useState("");
   const { token } = useAuth();
 
+  // Clamp helper: keep YM >= 2025-01
+  function clampToMinYM(y, m) {
+    if (y < MIN_YM.year) return { y: MIN_YM.year, m: MIN_YM.month };
+    if (y === MIN_YM.year && m < MIN_YM.month) return { y, m: MIN_YM.month };
+    return { y, m };
+  }
+
   const handleChange = (y, m) => {
-    setYear(y);
-    setMonth(m);
+    const clamped = clampToMinYM(y, m);
+    setYear(clamped.y);
+    setMonth(clamped.m);
   };
 
   // Load current month into monthViewGroups ONLY
@@ -61,7 +72,7 @@ export default function DailyExpensesPage() {
     return () => {
       cancelled = true;
     };
-  }, [month, year, token, summaryDayGroups.length]); // keep deps minimal
+  }, [month, year, token, summaryDayGroups.length]);
 
   // Merge the edited month back into the summary baseline
   function mergeMonthIntoSummary(editedMonthGroups, editedYear, editedMonth) {
@@ -110,7 +121,7 @@ export default function DailyExpensesPage() {
         dayGroups={monthViewGroups}
         startOnMonday={false}
         currency="RS"
-        minYearMonth={{ year: 2025, month: 1 }}
+        minYearMonth={{ year: MIN_YEAR, month: 1 }}
         maxYearMonth={{
           year: today.getFullYear(),
           month: today.getMonth() + 1,
@@ -120,8 +131,9 @@ export default function DailyExpensesPage() {
       <ExpenseAnalysis
         dayGroups={monthViewGroups}
         currency="RS"
-        initialYear={year}
-        initialMonth={month}
+        year={year}
+        month={month}
+        onChangeYM={handleChange}
         onUpdateDayGroups={handleUpdateMonthGroups}
         token={token}
       />

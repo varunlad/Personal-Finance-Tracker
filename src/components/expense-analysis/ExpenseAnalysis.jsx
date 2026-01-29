@@ -10,13 +10,12 @@ import EditorModal from "./EditorModal.jsx";
 import { upsertDayExpenses } from "../../api/expenses";
 import { onRequestOpenEditor } from "../features/editor-bus.js";
 
-/* 🔽 NEW: editor bus subscription */
-
 export default function ExpenseAnalysis({
   dayGroups = [],
   currency = "RS",
-  initialYear,
-  initialMonth,
+  year,              // ✅ controlled
+  month,             // ✅ controlled
+  onChangeYM,        // ✅ (y, m) => void
   onUpdateDayGroups,
   token,
 }) {
@@ -51,7 +50,7 @@ export default function ExpenseAnalysis({
   const toBackendLabel = (key) => {
     if (key === "creditCard") return "Credit Card";
     if (key === "emi") return "EMIs";
-    return key; // others as-is
+    return key;
   };
 
   const CATEGORY_OPTIONS = [
@@ -80,8 +79,8 @@ export default function ExpenseAnalysis({
   const now = new Date();
   const today = { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() };
   const cmpYM = (a, b) => (a.y === b.y ? a.m - b.m : a.y - b.y);
-  const canEditDay = (year, month, day) => {
-    const sel = { y: year, m: month };
+  const canEditDay = (yr, mo, day) => {
+    const sel = { y: yr, m: mo };
     const tYM = { y: today.y, m: today.m };
     const diff = cmpYM(sel, tYM);
     if (diff > 0) return false;
@@ -89,6 +88,7 @@ export default function ExpenseAnalysis({
     return day <= today.d;
   };
 
+  // Flatten for header lists
   const flatAll = useMemo(() => {
     const out = [];
     for (const g of dayGroups) {
@@ -105,27 +105,7 @@ export default function ExpenseAnalysis({
     return out;
   }, [dayGroups]);
 
-  const allYM = useMemo(() => {
-    const set = new Set(
-      flatAll.map((e) => {
-        const { y, m } = parseYMD(e.date);
-        return `${y}-${pad2(m)}`;
-      })
-    );
-    return Array.from(set).sort();
-  }, [flatAll]);
-
-  let defaultYear = now.getFullYear();
-  let defaultMonth = now.getMonth() + 1;
-  if (allYM.length) {
-    const [yStr, mStr] = allYM[allYM.length - 1].split("-");
-    defaultYear = Number(yStr);
-    defaultMonth = Number(mStr);
-  }
-
-  const [year, setYear] = useState(initialYear ?? defaultYear);
-  const [month, setMonth] = useState(initialMonth ?? defaultMonth);
-
+  // Groups for current YM
   const groupsForMonth = useMemo(
     () =>
       dayGroups.filter((g) => {
@@ -175,21 +155,19 @@ export default function ExpenseAnalysis({
     return map;
   }, [emptyCats, groupsForMonth]);
 
+  // ------------ Editor state ------------
   const [editingDay, setEditingDay] = useState(null);
   const [editRows, setEditRows] = useState([]);
   const [pendingDeleteIds, setPendingDeleteIds] = useState(new Set());
-
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  // ✅ Open editor with COALESCED rows (one per category)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   function openEditor(dayNum) {
     if (!canEditDay(year, month, dayNum)) return;
     const dateStr = toYMD(year, month, dayNum);
     const group = dayGroups.find((g) => g.date === dateStr);
 
-    const buckets = new Map(); // key -> { total, note? }
+    const buckets = new Map();
     if (group && Array.isArray(group.items)) {
       for (const it of group.items) {
         const key = toKeyFromRaw(it.category);
@@ -205,7 +183,7 @@ export default function ExpenseAnalysis({
 
     const rows = Array.from(buckets.entries()).map(([key, { total, note }]) => ({
       id: cryptoRandomId(),
-      expenseId: null, // ignored
+      expenseId: null,
       amount: total,
       category: key,
       note: note || "",
@@ -234,11 +212,9 @@ export default function ExpenseAnalysis({
       { id: cryptoRandomId(), expenseId: null, amount: 0, category: "other", note: "", isNew: true },
     ]);
   }
-
   function updateRow(id, patch) {
     setEditRows((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   }
-
   function toggleDelete(id) {
     setPendingDeleteIds((prev) => {
       const next = new Set(prev);
@@ -248,10 +224,9 @@ export default function ExpenseAnalysis({
     });
   }
 
-  // ✅ Final payload: one item per category, no ids
   function buildCoalescedItemsFromEditor(rows, deletesSet) {
     const nonDeleted = rows.filter((r) => !deletesSet.has(r.id));
-    const buckets = new Map(); // key -> { total, note? }
+    const buckets = new Map();
 
     for (const r of nonDeleted) {
       const key = r.category;
@@ -266,10 +241,7 @@ export default function ExpenseAnalysis({
 
     const items = [];
     for (const [key, info] of buckets) {
-      const payload = {
-        amount: info.total,
-        category: toBackendLabel(key),
-      };
+      const payload = { amount: info.total, category: toBackendLabel(key) };
       if (info.note) payload.note = info.note;
       items.push(payload);
     }
@@ -310,7 +282,8 @@ export default function ExpenseAnalysis({
     })();
   }
 
-  /* 🔽 NEW: listen for "open editor" requests from ExpenseSummary (or anywhere) */
+  // 🔽 If something else requests opening the editor for a date in a different month,
+  //     ask the parent to switch YM (so calendar + dropdown stay in sync), then open.
   useEffect(() => {
     const unsubscribe = onRequestOpenEditor((date) => {
       if (!(date instanceof Date) || isNaN(date)) return;
@@ -322,9 +295,8 @@ export default function ExpenseAnalysis({
       const switchMonth = y !== year || m !== month;
 
       if (switchMonth) {
-        setYear(y);
-        setMonth(m);
-        // Open after state updates (microtask)
+        onChangeYM?.(y, m);
+        // Defer editor opening to the next microtask so props update first
         setTimeout(() => openEditor(d), 0);
       } else {
         openEditor(d);
@@ -332,7 +304,7 @@ export default function ExpenseAnalysis({
     });
 
     return unsubscribe;
-  }, [year, month, openEditor]); // re-evaluate if year/month changes
+  }, [year, month]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (saveError) console.warn("ExpenseAnalysis saveError:", saveError);
@@ -361,9 +333,8 @@ export default function ExpenseAnalysis({
         year={year}
         month={month}
         expenses={flatAll}
-        setYear={setYear}
-        setMonth={setMonth}
         parseYMD={parseYMD}
+        onChangeYM={onChangeYM}  // ✅ controlled change
       />
 
       <div className="ea-subtitle">
