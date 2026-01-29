@@ -58,7 +58,7 @@ export default function RecurringItemList({ items, onDelete, onEdit }) {
               <th>Start</th>
               <th>End</th>
               <th>Next Due</th>
-              <th aria-label="Actions" />
+              <th aria-label="Actions" >Actions</th>
             </tr>
           </thead>
           <tbody>

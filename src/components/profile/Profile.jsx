@@ -425,7 +425,7 @@ export default function Profile() {
           <div className="monthly-summary">
             <div className="summary-cards">
               <div className="summary-card">
-                <div className="summary-title">This Month · Total</div>
+                <div className="summary-title">Total Due</div>
                 <div className="summary-value">₹ {thisMonthTotal.toLocaleString("en-IN")}</div>
               </div>
               <div className="summary-card">
