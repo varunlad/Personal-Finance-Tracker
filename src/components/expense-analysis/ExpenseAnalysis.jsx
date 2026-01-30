@@ -13,9 +13,9 @@ import { onRequestOpenEditor } from "../features/editor-bus.js";
 export default function ExpenseAnalysis({
   dayGroups = [],
   currency = "RS",
-  year,              // ✅ controlled
-  month,             // ✅ controlled
-  onChangeYM,        // ✅ (y, m) => void
+  year, // ✅ controlled
+  month, // ✅ controlled
+  onChangeYM, // ✅ (y, m) => void
   onUpdateDayGroups,
   token,
 }) {
@@ -24,7 +24,9 @@ export default function ExpenseAnalysis({
   const fmtAmount = (n) =>
     currency === "INR" || currency === "RS"
       ? "₹ " + new Intl.NumberFormat("en-IN").format(n)
-      : new Intl.NumberFormat("en-IN", { style: "currency", currency }).format(n);
+      : new Intl.NumberFormat("en-IN", { style: "currency", currency }).format(
+          n
+        );
 
   const parseYMD = (s) => {
     const [y, m, d] = s.split("-").map(Number);
@@ -77,7 +79,11 @@ export default function ExpenseAnalysis({
   };
 
   const now = new Date();
-  const today = { y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() };
+  const today = {
+    y: now.getFullYear(),
+    m: now.getMonth() + 1,
+    d: now.getDate(),
+  };
   const cmpYM = (a, b) => (a.y === b.y ? a.m - b.m : a.y - b.y);
   const canEditDay = (yr, mo, day) => {
     const sel = { y: yr, m: mo };
@@ -105,7 +111,7 @@ export default function ExpenseAnalysis({
     return out;
   }, [dayGroups]);
 
-  // Groups for current YM
+  // Groups for the currently selected month
   const groupsForMonth = useMemo(
     () =>
       dayGroups.filter((g) => {
@@ -119,7 +125,8 @@ export default function ExpenseAnalysis({
     let t = 0;
     for (const g of groupsForMonth) {
       if (typeof g.total === "number") t += g.total;
-      else t += (g.items || []).reduce((s, it) => s + (Number(it.amount) || 0), 0);
+      else
+        t += (g.items || []).reduce((s, it) => s + (Number(it.amount) || 0), 0);
     }
     return t;
   }, [groupsForMonth]);
@@ -181,14 +188,16 @@ export default function ExpenseAnalysis({
       }
     }
 
-    const rows = Array.from(buckets.entries()).map(([key, { total, note }]) => ({
-      id: cryptoRandomId(),
-      expenseId: null,
-      amount: total,
-      category: key,
-      note: note || "",
-      isNew: false,
-    }));
+    const rows = Array.from(buckets.entries()).map(
+      ([key, { total, note }]) => ({
+        id: cryptoRandomId(),
+        expenseId: null,
+        amount: total,
+        category: key,
+        note: note || "",
+        isNew: false,
+      })
+    );
 
     setEditingDay(dayNum);
     setEditRows(rows);
@@ -209,11 +218,20 @@ export default function ExpenseAnalysis({
     if (editingDay && !canEditDay(year, month, editingDay)) return;
     setEditRows((rows) => [
       ...rows,
-      { id: cryptoRandomId(), expenseId: null, amount: 0, category: "other", note: "", isNew: true },
+      {
+        id: cryptoRandomId(),
+        expenseId: null,
+        amount: 0,
+        category: "other",
+        note: "",
+        isNew: true,
+      },
     ]);
   }
   function updateRow(id, patch) {
-    setEditRows((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+    setEditRows((rows) =>
+      rows.map((r) => (r.id === id ? { ...r, ...patch } : r))
+    );
   }
   function toggleDelete(id) {
     setPendingDeleteIds((prev) => {
@@ -231,7 +249,8 @@ export default function ExpenseAnalysis({
     for (const r of nonDeleted) {
       const key = r.category;
       const amt = Number(r.amount) || 0;
-      const note = typeof r.note === "string" ? r.note.trim().slice(0, 200) : "";
+      const note =
+        typeof r.note === "string" ? r.note.trim().slice(0, 200) : "";
       if (amt <= 0) continue;
       if (!buckets.has(key)) buckets.set(key, { total: 0, note: "" });
       const b = buckets.get(key);
@@ -258,7 +277,9 @@ export default function ExpenseAnalysis({
         return;
       }
       if (!onUpdateDayGroups) {
-        console.warn("onUpdateDayGroups is not provided. Changes will not persist.");
+        console.warn(
+          "onUpdateDayGroups is not provided. Changes will not persist."
+        );
         closeEditor();
         return;
       }
@@ -269,7 +290,11 @@ export default function ExpenseAnalysis({
 
       try {
         const items = buildCoalescedItemsFromEditor(editRows, pendingDeleteIds);
-        const upsertResp = await upsertDayExpenses({ date: dateStr, items, token });
+        const upsertResp = await upsertDayExpenses({
+          date: dateStr,
+          items,
+          token,
+        });
         const updatedMonthGroups = upsertResp?.month ?? [];
         onUpdateDayGroups(updatedMonthGroups);
         closeEditor();
@@ -282,8 +307,7 @@ export default function ExpenseAnalysis({
     })();
   }
 
-  // 🔽 If something else requests opening the editor for a date in a different month,
-  //     ask the parent to switch YM (so calendar + dropdown stay in sync), then open.
+  // If another feature requests opening a different month/day, sync parent YM first
   useEffect(() => {
     const unsubscribe = onRequestOpenEditor((date) => {
       if (!(date instanceof Date) || isNaN(date)) return;
@@ -296,7 +320,7 @@ export default function ExpenseAnalysis({
 
       if (switchMonth) {
         onChangeYM?.(y, m);
-        // Defer editor opening to the next microtask so props update first
+        // Defer editor opening so props land first
         setTimeout(() => openEditor(d), 0);
       } else {
         openEditor(d);
@@ -334,7 +358,7 @@ export default function ExpenseAnalysis({
         month={month}
         expenses={flatAll}
         parseYMD={parseYMD}
-        onChangeYM={onChangeYM}  // ✅ controlled change
+        onChangeYM={onChangeYM} // ✅ controlled change
       />
 
       <div className="ea-subtitle">
@@ -379,6 +403,7 @@ export default function ExpenseAnalysis({
 }
 
 function cryptoRandomId() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  if (typeof crypto !== "undefined" && crypto.randomUUID)
+    return crypto.randomUUID();
   return "id-" + Math.random().toString(36).slice(2);
 }
