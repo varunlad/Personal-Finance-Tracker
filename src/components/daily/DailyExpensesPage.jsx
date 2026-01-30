@@ -12,7 +12,7 @@ export default function DailyExpensesPage() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
 
-  const MIN_YEAR = 2025; // 🔒 enforce 2025+
+  const MIN_YEAR = 2025;
   const MIN_YM = { year: MIN_YEAR, month: 1 };
 
   // 🔒 Stable baseline for ExpenseSummary; starts empty and updates on edits/fetch
@@ -121,13 +121,14 @@ export default function DailyExpensesPage() {
         dayGroups={monthViewGroups}
         startOnMonday={false}
         currency="RS"
-        minYearMonth={{ year: MIN_YEAR, month: 1 }}
+        minYearMonth={{ year: MIN_YEAR, month: 1 }}  // 👈 keep calendar in sync with min bound
         maxYearMonth={{
           year: today.getFullYear(),
           month: today.getMonth() + 1,
         }}
       />
 
+      {/* ✅ Controlled: ExpenseAnalysis follows parent YM and can change it */}
       <ExpenseAnalysis
         dayGroups={monthViewGroups}
         currency="RS"
