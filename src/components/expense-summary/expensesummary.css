@@ -1,4 +1,8 @@
-/* Card & layout */
+/* ---------- Card & Layout ---------- */
+.chart-switcher {
+  width: 50%;
+}
+
 .expense-summary.card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -27,13 +31,20 @@
   font-size: 0.95rem;
 }
 
-/* Date row */
+/* ---------- Date row ---------- */
 .date-row {
   display: flex;
-  gap: 12px;
   align-items: center;
   margin-bottom: 14px;
 }
+
+.date-inline {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .date-field {
   display: grid;
   gap: 6px;
@@ -41,6 +52,10 @@
 .sep {
   align-self: center;
   color: var(--muted);
+}
+
+.apply-btn {
+  margin-left: 4px;
 }
 
 /* Inputs */
@@ -55,7 +70,7 @@ input[type="date"] {
 }
 input[type="date"]:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25); /* uses --primary's tone */
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 .theme-dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
@@ -71,9 +86,9 @@ input[type="date"]:focus {
   align-items: center;
 }
 .btn {
-  padding: 7px 12px;
+  padding: 8px 14px;
   border: 1px solid var(--border);
-  background: rgba(148, 163, 184, 0.12); /* soft blend */
+  background: color-mix(in srgb, var(--card) 84%, transparent);
   color: var(--text);
   border-radius: 10px;
   cursor: pointer;
@@ -91,14 +106,10 @@ input[type="date"]:focus {
   background: var(--primary);
   border-color: var(--primary);
   color: #fff;
-  padding: 8px 12px;
+  font-weight: 600;
 }
 .btn.primary:hover {
   opacity: 0.95;
-}
-.btn.ghost {
-  background: transparent;
-  border-color: var(--border);
 }
 .btn[disabled] {
   opacity: 0.55;
@@ -115,33 +126,27 @@ input[type="date"]:focus {
   top: 50%;
 }
 
-/* Chart surface */
-
-/* ================= Segmented Control (Pill Switch) ================= */
+/* ---------- Segmented Control ---------- */
 .segmented {
   --seg-bg: color-mix(in srgb, var(--card, #fff) 85%, transparent);
   --seg-border: color-mix(in srgb, var(--border, #d1d5db) 100%, transparent);
   --seg-fg: var(--text, #111827);
   --seg-muted: var(--muted, #6b7280);
-
-  /* Active colors (inherits your --primary if defined) */
   --seg-active-bg: var(--primary, #583889);
   --seg-active-fg: var(--primary-contrast, #ffffff);
 
   display: inline-flex;
   align-items: center;
-  gap: 6px; /* subtle spacing between pills */
-  padding: 4px; /* inner padding creates the pill rail */
-  border-radius: 12px; /* pill */
+  gap: 6px;
+  padding: 4px;
+  border-radius: 12px;
   background: var(--seg-bg);
   border: 1px solid var(--seg-border);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.03);
   backdrop-filter: saturate(120%) blur(2px);
 }
-
 .seg {
   appearance: none;
-  -webkit-appearance: none;
   border: 0;
   background: transparent;
   color: var(--seg-muted);
@@ -149,24 +154,20 @@ input[type="date"]:focus {
   font-size: 14px;
   letter-spacing: 0.2px;
   padding: 8px 14px;
-  border-radius: 10px; /* individual segment rounding */
+  border-radius: 10px;
   cursor: pointer;
   line-height: 1;
   transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease,
     transform 0.04s ease;
   outline: none;
 }
-
 .seg:hover {
   background: color-mix(in srgb, var(--primary, #583889) 8%, transparent);
   color: var(--seg-fg);
 }
-
 .seg:active {
   transform: translateY(0.5px);
 }
-
-/* Active state — solid pill with soft shadow */
 .seg.active {
   background: var(--seg-active-bg);
   color: var(--seg-active-fg);
@@ -174,15 +175,13 @@ input[type="date"]:focus {
       color-mix(in srgb, var(--seg-active-bg) 30%, transparent),
     inset 0 -1px 0 color-mix(in srgb, #000 10%, transparent);
 }
-
-/* Keyboard accessibility */
 .seg:focus-visible {
   box-shadow: 0 0 0 2px
       color-mix(in srgb, var(--seg-active-bg) 40%, transparent),
     0 0 0 4px color-mix(in srgb, var(--seg-active-bg) 20%, transparent);
 }
 
-/* Optional: make the non-active segment text crisper on dark backgrounds */
+/* Dark adjustments */
 .theme-dark .segmented {
   --seg-bg: color-mix(in srgb, var(--surface, #111827) 70%, transparent);
   --seg-border: color-mix(in srgb, var(--border, #2d3340) 100%, transparent);
@@ -190,60 +189,237 @@ input[type="date"]:focus {
   --seg-muted: color-mix(in srgb, var(--text, #e5e7eb) 70%, transparent);
 }
 
-/* --- Add Expense (+) button --- */
-.add-expense-btn {
-  margin-left: 8px;
+/* ---------- Advisor Panel ---------- */
+.advisor-panel {
+  width: 50%;
+  min-width: 0;
+}
+.advisor-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Header with subtle gradient */
+.advisor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary) 18%, transparent),
+    transparent
+  );
+  border-bottom: 1px solid var(--border);
+}
+.advisor-title-wrap {
+  display: flex;
+  gap: 2px;
+  flex-direction: column;
+  width: 100%;
+}
+.advisor-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: var(--text);
+}
+.advisor-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.advisor-subtitle {
+  margin: 0;
+}
+
+.badge {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  font-weight: 700;
-  background: var(--accent, #6366f1);
-  color: #fff;
-  border: none;
+  gap: 6px;
+  font-size: 0.85rem;
+  padding: 0px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 84%, transparent);
+  color: var(--text);
+}
+
+.icon-btn {
+  background: transparent;
+  border: 0;
   cursor: pointer;
-  transition: transform 120ms ease, background 160ms ease;
+  color: var(--muted);
+}
+.icon-btn:hover {
+  color: var(--text);
 }
 
-.add-expense-btn:hover,
-.add-expense-btn:focus-visible {
-  background: #5558f5;
-  transform: translateY(-1px);
+.salary-value {
+  font-variant-numeric: tabular-nums;
 }
 
-.add-expense-btn:focus-visible {
-  outline: 2px solid #6aa9ff;
-  outline-offset: 2px;
+/* KPIs grid */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 12px 4px;
+}
+.kpi {
+  background: color-mix(in srgb, var(--card) 85%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+}
+.kpi-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.kpi-value {
+  display: block;
+  font-weight: 800;
+  color: var(--text);
 }
 
-/* OPTIONAL: make '+' a floating action button on small screens */
-
-@media (max-width: 640px) {
-  .add-expense-btn {
-    position: fixed;
-    right: 16px;
-    bottom: 16px;
-    z-index: 30;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
-  }
+/* Progress block */
+.progress-block {
+  padding: 8px 12px 12px;
+}
+.section-title {
+  margin: 4px 0 8px;
+  font-size: 0.95rem;
 }
 
-@media (max-width: 480px) {
-  .segmented {
-    gap: 4px;
-    padding: 3px;
-    border-radius: 10px;
-  }
-  .seg {
-    font-size: 13px;
-    padding: 7px 12px;
-    border-radius: 8px;
-  }
+.progress-row {
+  margin-bottom: 10px;
+}
+.progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.progress-label {
+  font-weight: 700;
+  color: var(--text);
 }
 
-/* Empty state & footer */
+.progress-track {
+  width: 100%;
+  height: 12px;
+  background: color-mix(in srgb, var(--surface, #0b1220) 94%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 500ms ease-in-out;
+}
+.progress-bar.needs {
+  background: linear-gradient(90deg, #fb923c, #f97316);
+}
+.progress-bar.wants {
+  background: linear-gradient(90deg, #a78bfa, #7c3aed);
+}
+.progress-bar.invest {
+  background: linear-gradient(90deg, #34d399, #059669);
+}
+
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Delta chips */
+.delta {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+}
+.delta-good {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.35);
+}
+.delta-bad {
+  background: rgba(244, 63, 94, 0.15);
+  color: #f43f5e;
+  border-color: rgba(244, 63, 94, 0.35);
+}
+.delta.neutral {
+  background: rgba(148, 163, 184, 0.15);
+  color: #9aa4b2;
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+/* Suggestions (polished) */
+.suggestions {
+  padding: 6px 12px 12px;
+}
+.suggestion-list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  list-style: none;
+}
+.suggestion-item {
+  display: grid;
+  align-items: start;
+  gap: 8px;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--primary);
+  border-radius: 5px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.suggestion-text {
+  color: var(--text);
+  line-height: 1.35;
+}
+.num-emphasis {
+  font-weight: 800;
+  color: color-mix(in srgb, var(--primary) 85%, var(--text));
+}
+
+/* Footer */
+.fine-print {
+  padding: 8px 12px 12px;
+  border-top: 1px dashed var(--border);
+}
+
+/* ---------- Summary Grid: smooth appear ---------- */
+.summary-grid {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+.summary-grid.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------- Empty & Error ---------- */
 .inline-error {
   margin: 8px 0;
   color: var(--red);
@@ -258,28 +434,134 @@ input[type="date"]:focus {
   border-radius: 16px;
   padding: 16px;
 }
-.summary-footer {
+/* --- Mini Allocation (Option C) --- */
+.alloc-mini {
+  display: grid;
+  gap: 8px;
+  padding: 6px 12px 10px;
+}
+.alloc-header {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 12px;
   align-items: center;
-  margin-top: 14px;
+  justify-content: space-between;
 }
-.metric {
-  font-weight: 600;
-  color: var(--text);
-}
-.metric-value {
-  font-size: 1rem;
+.alloc-header .section-title {
+  margin: 0;
+  font-size: 0.95rem;
   font-weight: 700;
-  color: var(--text);
+}
+.alloc-help {
+  font-size: 0.8rem;
+}
+.alloc-help abbr {
+  text-decoration: none;
+  border-bottom: 1px dashed var(--border);
+  cursor: help;
 }
 
-/* Responsive */
+.alloc-mini-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "left bar right"
+    "meta meta meta";
+  align-items: center;
+  gap: 6px 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+}
+
+.am-left { grid-area: left; display: inline-flex; align-items: baseline; gap: 8px; }
+.am-label { font-weight: 800; color: var(--text); font-size: 0.9rem; }
+.am-pct { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); }
+
+.am-bartrack {
+  grid-area: bar;
+  width: 100%;
+  height: 6px;
+  background: color-mix(in srgb, var(--surface, #0b1220) 94%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.am-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 240ms ease;
+}
+.am-bar.needs  { background: linear-gradient(90deg, #fb923c, #f97316); }
+.am-bar.wants  { background: linear-gradient(90deg, #a78bfa, #7c3aed); }
+.am-bar.invest { background: linear-gradient(90deg, #34d399, #059669); }
+
+.am-right { grid-area: right; }
+.am-delta {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.am-delta.good {
+  background: rgba(34,197,94,0.15);
+  color: #22c55e;
+  border-color: rgba(34,197,94,0.35);
+}
+.am-delta.bad {
+  background: rgba(244,63,94,0.15);
+  color: #f43f5e;
+  border-color: rgba(244,63,94,0.35);
+}
+.am-delta.neutral {
+  background: rgba(148,163,184,0.15);
+  color: #9aa4b2;
+  border-color: rgba(148,163,184,0.35);
+}
+
+.am-meta {
+  grid-area: meta;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+.am-meta strong { font-weight: 800; }
+.am-target.muted { color: var(--muted); }
+
+/* Tighter on mobile */
 @media (max-width: 768px) {
-  .date-row {
-    grid-template-columns: 1fr;
-    align-items: start;
+  .alloc-mini { gap: 6px; padding: 6px 8px 8px; }
+  .alloc-mini-row { gap: 4px 8px; padding: 6px; }
+  .am-label { font-size: 0.88rem; }
+  .am-pct { font-size: 0.86rem; }
+}
+
+/* ---------- ApexCharts legend readability ---------- */
+.apexcharts-legend-text {
+  font-weight: 700 !important;
+  color: var(--text) !important;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .kpis{
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .chart-switcher {
+    width: 100%;
+  }
+  .advisor-panel {
+    width: 100%;
+  }
+  .summary-grid {
+    flex-direction: column;
+  }
+  .date-inline {
+    width: 100%;
+  }
+  .apply-btn {
+    margin-left: 0;
   }
 }

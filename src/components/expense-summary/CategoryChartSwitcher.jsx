@@ -1,3 +1,4 @@
+// src/components/expenses/CategoryChartSwitcher.jsx
 import { useMemo, useState } from "react";
 import Chart from "react-apexcharts";
 import { formatINR } from "../../utils/expenseUtils";
@@ -8,7 +9,7 @@ import { formatINR } from "../../utils/expenseUtils";
  * - values: number[]
  * - colors: string[]
  * - currencySymbol: string
- * - defaultType: "donut" | "bar"
+ * - defaultType: "donut" | "bar" | "pie"
  * - themeMode: "dark" | "light"
  * - totalVal?: number
  */
@@ -21,17 +22,17 @@ export default function CategoryChartSwitcher({
   themeMode = "dark",
   totalVal,
 }) {
-  const [chartType, setChartType] = useState(defaultType === "bar" ? "bar" : "donut");
+  const [chartType, setChartType] = useState(
+    defaultType === "bar" ? "bar" : "donut"
+  );
 
   // Orientation toggle for Bar
   const [barHorizontal, setBarHorizontal] = useState(true);
 
-  // Theme
   const isDark = String(themeMode).toLowerCase() === "dark";
   const textColor = "var(--text)";
   const borderColor = "var(--border)";
 
-  // --- Category color map ---
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const CATEGORY_COLORS = {
     creditCard: "#6366F1",
@@ -44,7 +45,6 @@ export default function CategoryChartSwitcher({
     rentBills: "#E98E52FF",
   };
 
-  // Normalize external label strings to internal keys used in your app
   const normalizeCat = (c) => {
     const raw = String(c || "other").trim();
     if (raw === "Credit Card") return "creditCard";
@@ -59,14 +59,16 @@ export default function CategoryChartSwitcher({
     return "other";
   };
 
-  // Ensure numeric values
   const safeValues = useMemo(
     () => (Array.isArray(values) ? values.map((v) => Number(v) || 0) : []),
     [values]
   );
-  const safeTotal = useMemo(() => safeValues.reduce((a, b) => a + b, 0), [safeValues]);
+  const safeTotal = useMemo(
+    () => safeValues.reduce((a, b) => a + b, 0),
+    [safeValues]
+  );
 
-  // Map labels -> colors using the category dictionary; fallback to provided colors if unknown
+  // Map labels -> colors using category dictionary; fallback to provided colors
   const mappedColors = useMemo(() => {
     const fallback = (i) => colors[Math.min(i, colors.length - 1)] || "#999";
     return labels.map((label, idx) => {
@@ -75,17 +77,14 @@ export default function CategoryChartSwitcher({
     });
   }, [labels, colors, CATEGORY_COLORS]);
 
-  // --- SERIES per type ---
-  // IMPORTANT: For BAR we provide data as { x: <category>, y: <value> }
   const seriesForType = useMemo(() => {
     if (chartType === "bar") {
       const barData = labels.map((lbl, i) => ({
         x: lbl,
-        y: safeValues[i] || 0,
+        y: Math.max(0, safeValues[i] || 0),
       }));
       return [{ name: "Amount", data: barData }];
     }
-    // donut expects an array of numbers
     return safeValues;
   }, [chartType, labels, safeValues]);
 
@@ -95,12 +94,17 @@ export default function CategoryChartSwitcher({
         type: chartType,
         background: "transparent",
         toolbar: { show: false },
-        animations: { enabled: true },
+        animations: {
+          enabled: true,
+          easing: "easeinout",
+          speed: 400,
+          animateGradually: { enabled: true, delay: 60 },
+          dynamicAnimation: { enabled: true, speed: 380 },
+        },
         foreColor: textColor,
       },
       colors: mappedColors,
       legend: {
-        // hide legend for bar charts to avoid odd numeric legends with distributed bars
         show: chartType !== "bar",
         position: "bottom",
         labels: { colors: textColor },
@@ -121,10 +125,6 @@ export default function CategoryChartSwitcher({
 
   const options = useMemo(() => {
     if (chartType === "bar") {
-      // With data objects {x, y}, Apex chooses correct axes automatically.
-      // We only need to:
-      //  - set horizontal flag
-      //  - format the numeric axis ticks (X for horizontal, Y for vertical)
       const numLabelsStyle = { colors: Array(5).fill(textColor) };
 
       const xNumeric = {
@@ -157,7 +157,6 @@ export default function CategoryChartSwitcher({
           },
         },
         dataLabels: { enabled: false },
-        // Numeric axis formatter depends on orientation:
         xaxis: barHorizontal ? xNumeric : {},
         yaxis: barHorizontal ? {} : yNumeric,
       };
@@ -181,7 +180,7 @@ export default function CategoryChartSwitcher({
       plotOptions: {
         pie: {
           donut: {
-            size: "60%",
+            size: "62%",
             labels: {
               show: true,
               total: {
@@ -257,8 +256,6 @@ export default function CategoryChartSwitcher({
       )}
 
       <div className="themed-surface" style={{ marginTop: 12 }}>
-        {/* key => clean re-mount so Apex updates axis types correctly
-            (especially when flipping orientation) */}
         <Chart
           key={`type-${chartType}-orient-${barHorizontal ? "h" : "v"}`}
           options={options}

@@ -1,4 +1,3 @@
-
 /* Default (dark theme) */
 :root {
   --bg: #0b0d10;
@@ -44,25 +43,37 @@ body {
 }
 
 /* Headings */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   color: var(--text);
   margin: 0;
   font-weight: 600;
 }
 
-input, select {
+input,
+select {
   background: var(--card);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px;
 }
-input::placeholder { color: var(--muted) }
-label > span.muted { font-size: 12px }
-
+input::placeholder {
+  color: var(--muted);
+}
+label > span.muted {
+  font-size: 12px;
+}
 
 /* Paragraphs and spans */
-p, span, li, label {
+p,
+span,
+li,
+label {
   color: var(--text);
 }
 
@@ -90,7 +101,7 @@ p, span, li, label {
 .app-header .spacer {
   flex: 1;
 }
-.app-logo{
+.app-logo {
   width: 50px;
 }
 
@@ -99,6 +110,7 @@ p, span, li, label {
   padding: 16px;
   max-width: 1600px;
   margin: 0 auto;
+  padding-top: 0px;
 }
 
 /* Card */
@@ -130,8 +142,12 @@ p, span, li, label {
 }
 
 /* Utility colors */
-.text-green { color: var(--green); }
-.text-red { color: var(--red); }
+.text-green {
+  color: var(--green);
+}
+.text-red {
+  color: var(--red);
+}
 
 .theme-dark input[type="date"] {
   color: var(--text-primary, #e5e7eb);
