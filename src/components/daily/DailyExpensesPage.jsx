@@ -110,6 +110,9 @@ export default function DailyExpensesPage() {
       )}
 
       <ExpenseSummary
+        monthlySalary={80000} // ← your static prop for now
+        currencySymbol="₹"
+        autoFetchOnMount={true}
         dayGroups={summaryDayGroups}
         minSelectableDate={new Date(1990, 0, 1)}
       />
@@ -121,7 +124,7 @@ export default function DailyExpensesPage() {
         dayGroups={monthViewGroups}
         startOnMonday={false}
         currency="RS"
-        minYearMonth={{ year: MIN_YEAR, month: 1 }}  // 👈 keep calendar in sync with min bound
+        minYearMonth={{ year: MIN_YEAR, month: 1 }} // 👈 keep calendar in sync with min bound
         maxYearMonth={{
           year: today.getFullYear(),
           month: today.getMonth() + 1,

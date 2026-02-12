@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CategoryChartSwitcher from "./CategoryChartSwitcher";
+import BudgetAdvisorPanel from "./BudgetAdvisorPanel";
 import "./expensesummary.css";
 
 import { useAuth } from "../../context/auth-context";
 import { listRangeExpenses } from "../../api/expenses";
 import Loader from "../loader/Loader";
+import { useTweenedArray, useTweenedNumber } from "../../hooks/useTween";
 
 /* ---------- Local-safe helpers for <input type="date"> ---------- */
 function parseInputDate(str) {
@@ -27,7 +29,7 @@ function formatYMD(date) {
   return toYMD(date);
 }
 
-/** Map raw backend category to a pretty label (no lowercasing) */
+/** Map raw backend category to a pretty label (no lowercasing of certain labels) */
 function toPrettyLabel(raw) {
   const s = String(raw || "").trim();
   if (s === "Credit Card") return "Credit Card";
@@ -39,22 +41,31 @@ function toPrettyLabel(raw) {
   if (l.includes("groc")) return "Grocery";
   if (l.includes("rent") || l.includes("bill")) return "Rent/Bills";
   if (s === "other" || s === "Other") return "Other";
-  // Fallback to raw if new category appears
+  // Fallback to raw
   return s || "Other";
 }
 
 /**
- * ExpenseSummary:
- * - Server-side date-range fetching and category summary display.
+ * ExpenseSummary
+ * Props:
+ *  - monthlySalary (number): REQUIRED for advisor panel; no input UI.
+ *  - minSelectableDate?: Date
+ *  - maxSelectableDate?: Date
+ *  - currencySymbol?: string (default "₹")
+ *  - autoFetchOnMount?: boolean (default false) — if true, loads YTD automatically.
  */
 export default function ExpenseSummary({
+  monthlySalary,
   minSelectableDate = new Date(2000, 0, 1),
   maxSelectableDate,
+  currencySymbol = "₹",
+  autoFetchOnMount = false,
 }) {
   const { token } = useAuth();
   const today = new Date();
 
-  const MIN_LOADER_MS = 3000;
+  // Controls how long loader stays at minimum (for perceived "AI" processing)
+  const MIN_LOADER_MS = 1000;
 
   // Clamp bounds for date inputs
   const minDate = minSelectableDate;
@@ -75,6 +86,9 @@ export default function ExpenseSummary({
 
   const [fetching, setFetching] = useState(false);
   const [contentReady, setContentReady] = useState(false);
+
+  // prevent auto-fetch if not desired
+  const firstLoadRef = useRef(true);
 
   function onPendingStartChange(e) {
     const next = parseInputDate(e.target.value);
@@ -141,7 +155,7 @@ export default function ExpenseSummary({
         setFetching(false);
       }, remaining);
     } catch (err) {
-      setError(err.message || "Failed to fetch range summary");
+      setError(err?.message || "Failed to fetch range summary");
       setRangeGroups([]);
 
       const elapsed = Date.now() - t0;
@@ -153,9 +167,11 @@ export default function ExpenseSummary({
     }
   }
 
-  // Auto-fetch YTD on mount/token
+  // Optional: Auto-fetch YTD on mount/token IF explicitly enabled
   useEffect(() => {
+    if (!autoFetchOnMount) return;
     let cancelled = false;
+    if (firstLoadRef.current) firstLoadRef.current = false;
 
     async function fetchYTD() {
       const start = new Date(today.getFullYear(), 0, 1);
@@ -198,7 +214,7 @@ export default function ExpenseSummary({
       } catch (err) {
         if (!cancelled) {
           setError(
-            err.message || "Failed to fetch current year-to-date summary"
+            err?.message || "Failed to fetch current year-to-date summary"
           );
           setRangeGroups([]);
         }
@@ -216,9 +232,10 @@ export default function ExpenseSummary({
     return () => {
       cancelled = true;
     };
-  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, autoFetchOnMount]);
 
-  // Build chart inputs: key by PRETTY LABELS to keep "Credit Card" / "EMIs" intact
+  // Build chart inputs: keyed by PRETTY LABELS to keep "Credit Card" / "EMIs" intact
   const { labels, values, total } = useMemo(() => {
     const totalsMap = new Map(); // prettyLabel -> sum
     let grand = 0;
@@ -239,6 +256,24 @@ export default function ExpenseSummary({
     };
   }, [rangeGroups]);
 
+  // Tweened “display” layer — only once content is ready
+  const tweenedValues = useTweenedArray(
+    !fetching && contentReady ? values : [],
+    {
+      duration: 900,
+    }
+  );
+  const tweenedTotal = useTweenedNumber(!fetching && contentReady ? total : 0, {
+    duration: 900,
+  });
+
+  // For advisor: build categoryTotals based on tweened values
+  const displayedCategoryTotals = useMemo(() => {
+    const map = new Map();
+    labels.forEach((l, i) => map.set(l, Number(tweenedValues[i]) || 0));
+    return Object.fromEntries(map);
+  }, [labels, tweenedValues]);
+
   const pendingStartStr = toInputValue(pendingStart);
   const pendingEndStr = toInputValue(pendingEnd);
   const minStr = toInputValue(minDate);
@@ -250,11 +285,13 @@ export default function ExpenseSummary({
 
   return (
     <section className="expense-summary card" aria-busy={fetching}>
-      <h3 style={{ marginBottom: 10 }}>Expense Summary</h3>
+      <div className="summary-header">
+        <h3 className="card-title">Expense Summary</h3>
+      </div>
 
-      {/* Range controls */}
+      {/* Range controls (Apply button inline on desktop) */}
       <div className="date-row">
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <div className="date-inline">
           <label className="date-field" aria-label="Start date">
             <input
               type="date"
@@ -278,11 +315,9 @@ export default function ExpenseSummary({
               onChange={onPendingEndChange}
             />
           </label>
-        </div>
 
-        <div className="date-actions">
           <button
-            className="btn primary"
+            className="btn primary apply-btn"
             onClick={handleApply}
             disabled={!!error || fetching}
             aria-label="Apply selected date range"
@@ -301,7 +336,7 @@ export default function ExpenseSummary({
 
       {/* Error */}
       {error && (
-        <div className="inline-error">
+        <div className="inline-error" aria-live="assertive">
           <span>⚠️ {error}</span>
         </div>
       )}
@@ -318,24 +353,35 @@ export default function ExpenseSummary({
             </p>
           </div>
         ) : (
-          <CategoryChartSwitcher
-            labels={labels}
-            values={values}
-            totalVal={total}
-            colors={[
-              "#53A9EB", // Mutual Fund
-              "#588352FF", // Stocks
-              "#E955DCFF", // Shopping
-              "#54D184FF", // Grocery
-              "#E26E6F", // Other
-              "#E98E52FF", // Rent/Bills
-              "#6366F1", // Credit Card (new)
-              "#c55cdfff", // EMIs (new)
-            ]}
-            themeMode={isDark ? "dark" : "light"}
-            currencySymbol="₹"
-            defaultType="pie"
-          />
+          <div className={`summary-grid show`}>
+            <CategoryChartSwitcher
+              labels={labels}
+              values={tweenedValues}
+              totalVal={tweenedTotal}
+              colors={[
+                "#53A9EB", // Mutual Fund
+                "#588352FF", // Stocks
+                "#E955DCFF", // Shopping
+                "#54D184FF", // Grocery
+                "#E26E6F", // Other
+                "#E98E52FF", // Rent/Bills
+                "#6366F1", // Credit Card
+                "#c55cdfff", // EMIs
+              ]}
+              themeMode={isDark ? "dark" : "light"}
+              currencySymbol={currencySymbol}
+              defaultType="pie"
+            />
+
+            <BudgetAdvisorPanel
+              categoryTotals={displayedCategoryTotals}
+              total={tweenedTotal}
+              currencySymbol={currencySymbol}
+              monthlySalary={Number(monthlySalary) || 0}
+              rangeStart={appliedStart}
+              rangeEnd={appliedEnd}
+            />
+          </div>
         )
       ) : null}
     </section>
