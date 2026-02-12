@@ -7,11 +7,13 @@ import "./appHeader.css";
 export default function AppHeader({ title }) {
   const { user, logout } = useAuth();
   const { openProfile } = useProfileModal();
+  const [firstName] = user?.name?.split(" ") || [];
 
   return (
     <header className="app-header">
       <img src={logo} alt="App Logo" className="app-logo" />
-      <h1>{title}</h1>
+      <h1 className="desktop_none">{title}!</h1>
+      <h1 className="hedder_text">Hello, {firstName} welcome to your <span className="title">{title}!</span> </h1>
       <div className="spacer" />
 
       {user && (
