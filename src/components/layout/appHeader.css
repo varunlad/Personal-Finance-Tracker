@@ -1,6 +1,5 @@
-
-.btn-secondary{
-    padding: 8px !important;
+.btn-secondary {
+  padding: 8px !important;
 }
 .btn-profile-rtl {
   /* Put the icon on the right so growth happens to the left */
@@ -9,6 +8,16 @@
   overflow: hidden; /* hide the label while collapsed */
   margin-right: 8px;
   padding: 8px;
+}
+.hedder_text {
+  color: var(--text);
+}
+.title {
+  color: var(--primary);
+  font-weight: 800;
+}
+.desktop_none {
+  display: none;
 }
 
 /* Icon remains visible, sits on the right */
@@ -55,19 +64,18 @@
   outline-offset: 2px;
 }
 
-
 @media (hover: none) and (pointer: coarse) {
   .btn-profile-rtl .btn-label,
   .btn-logout-ltr .btn-label {
-    display: none !important;   /* hide text */
+    display: none !important; /* hide text */
   }
   .btn-profile-rtl .btn-icon,
   .btn-logout-ltr .btn-icon {
-    margin-left: 0 !important;  /* remove any gap reserved for label */
+    margin-left: 0 !important; /* remove any gap reserved for label */
   }
   .btn-profile-rtl,
   .btn-logout-ltr {
-    transition: none;           /* no hover effects on mobile */
+    transition: none; /* no hover effects on mobile */
   }
 }
 
@@ -80,5 +88,14 @@
   .btn-profile-rtl .btn-icon,
   .btn-logout-ltr .btn-icon {
     margin-left: 0 !important;
+  }
+  .hedder_text {
+    display: none;
+  }
+  .title {
+    display: none;
+  }
+  .desktop_none {
+    display: block;
   }
 }
