@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { formatINR } from "../../utils/expenseUtils";
 
 /**
@@ -20,16 +20,120 @@ export default function BudgetAdvisorPanel({
   rangeStart,
   rangeEnd,
 }) {
-  // helpers
+  const fmt = useCallback(
+    (n, sym = currencySymbol) => formatINR(Math.round(n || 0), sym),
+    [currencySymbol]
+  );
+
+  /* ----------------- BUDGET RULES ----------------- */
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const fmt = (n, sym = currencySymbol) => formatINR(Math.round(n || 0), sym);
-  const pct = (part, whole) =>
-    whole > 0 ? Math.min(100, Math.round((part / whole) * 100)) : 0;
+  const RULES = [
+    {
+      key: "50-30-20",
+      label: "50 / 30 / 20",
+      p: { needs: 0.5, wants: 0.3, invest: 0.2 },
+      desc: "Classic balanced plan: up to 50% essentials, 30% wants, ≥20% invest.",
+    },
+    {
+      key: "30-40-30",
+      label: "30 / 40 / 30",
+      p: { needs: 0.3, wants: 0.4, invest: 0.3 },
+      desc: "Aggressive growth with lifestyle: 30% needs, 40% wants, 30% invest.",
+    },
+    {
+      key: "40-30-30",
+      label: "40 / 30 / 30",
+      p: { needs: 0.4, wants: 0.3, invest: 0.3 },
+      desc: "Lean essentials (40%), balanced wants (30%), higher investing (30%).",
+    },
+    {
+      key: "60-20-20",
+      label: "60 / 20 / 20",
+      p: { needs: 0.6, wants: 0.2, invest: 0.2 },
+      desc: "High fixed costs: 60% needs, 20% wants, 20% invest.",
+    },
+    {
+      key: "custom",
+      label: "Custom",
+      p: null,
+      desc: "Enter your own split (must total 100%).",
+    },
+  ];
+  const DEFAULT_RULE_KEY = "50-30-20";
 
-  // Salary show/hide toggle (hidden by default)
+  /* ----------------- TOOLTIP TEXTS ----------------- */
+  const HELP = {
+    salary:
+      "Monthly salary used to compute targets. It is prorated over the selected date range (partial months are counted by day).",
+    needs:
+      "Essentials: Rent & Bills, Groceries, EMIs, Credit Card minimums and ~½ of 'Other'.",
+    wants: "Non-essentials: Shopping & discretionary items, and ~½ of 'Other'.",
+    invest: "Investments in this range: Mutual Funds + Stocks.",
+  };
+
+  /* ----------------- LOCAL STATE ----------------- */
+  const [salaryInput, setSalaryInput] = useState(
+    Number(monthlySalary) ? String(Number(monthlySalary)) : ""
+  );
+  const [appliedSalary, setAppliedSalary] = useState(
+    Number(monthlySalary) || 0
+  );
+
+  const [selectedRuleKey, setSelectedRuleKey] = useState(DEFAULT_RULE_KEY);
+  const [customNeeds, setCustomNeeds] = useState("50");
+  const [customWants, setCustomWants] = useState("30");
+  const [customInvest, setCustomInvest] = useState("20");
+  const [appliedRule, setAppliedRule] = useState(RULES[0]); // default 50/30/20
+
   const [showSalary, setShowSalary] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
 
-  /** ---------- Date helpers for pro‑rating ---------- */
+  // Load persisted settings (optional)
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("advisor_prefs") || "{}");
+      if (typeof saved.salary === "number") {
+        setSalaryInput(String(saved.salary));
+        setAppliedSalary(Number(saved.salary));
+      }
+      if (saved.ruleKey) {
+        const found = RULES.find((r) => r.key === saved.ruleKey);
+        if (found) {
+          setSelectedRuleKey(found.key);
+          if (found.key === "custom" && saved.custom) {
+            setCustomNeeds(String(saved.custom.needs ?? 0));
+            setCustomWants(String(saved.custom.wants ?? 0));
+            setCustomInvest(String(saved.custom.invest ?? 0));
+            setAppliedRule({
+              key: "custom",
+              label: "Custom",
+              p: {
+                needs: (saved.custom.needs || 0) / 100,
+                wants: (saved.custom.wants || 0) / 100,
+                invest: (saved.custom.invest || 0) / 100,
+              },
+              desc: "Custom split.",
+            });
+          } else if (found.p) {
+            setAppliedRule(found);
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Mirror parent salary if user hasn't saved preferences
+  useEffect(() => {
+    if (!localStorage.getItem("advisor_prefs")) {
+      setSalaryInput(String(Number(monthlySalary) || 0));
+      setAppliedSalary(Number(monthlySalary) || 0);
+    }
+  }, [monthlySalary]);
+
+  /* ----------------- DATE HELPERS / PRORATION ----------------- */
   function startOfMonth(d) {
     return new Date(d.getFullYear(), d.getMonth(), 1);
   }
@@ -37,75 +141,57 @@ export default function BudgetAdvisorPanel({
     return new Date(d.getFullYear(), d.getMonth() + 1, 0);
   }
   function daysBetweenInclusive(a, b) {
-    // Normalize to midnight to avoid DST issues
     const d0 = new Date(a.getFullYear(), a.getMonth(), a.getDate());
     const d1 = new Date(b.getFullYear(), b.getMonth(), b.getDate());
     return Math.floor((d1 - d0) / (24 * 3600 * 1000)) + 1;
   }
-
-  /**
-   * Pro‑rate a fixed monthly salary over an arbitrary date range.
-   * For each month overlapped by [start, end], we:
-   *  - find the overlap days within that month
-   *  - compute fraction = overlapDays / daysInThatMonth
-   *  - add fraction * monthlySalary
-   */
-  function getProratedIncomeForRange(monthlySalary, start, end) {
-    const m = Number(monthlySalary) || 0;
-    if (m <= 0 || !(start instanceof Date) || !(end instanceof Date)) return 0;
-    if (end < start) return 0;
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  function getProratedIncomeForRange(monthly, start, end) {
+    const m = Number(monthly) || 0;
+    if (m <= 0 || !(start instanceof Date) || !(end instanceof Date) || end < start) return 0;
     let cursor = new Date(start.getFullYear(), start.getMonth(), 1);
     const lastMonth = new Date(end.getFullYear(), end.getMonth(), 1);
     let totalIncome = 0;
-
     while (cursor <= lastMonth) {
       const monthStart = startOfMonth(cursor);
       const monthEnd = endOfMonth(cursor);
-
-      // overlap within [start, end]
       const segStart = new Date(
-        Math.max(
-          monthStart.getTime(),
-          new Date(
-            start.getFullYear(),
-            start.getMonth(),
-            start.getDate()
-          ).getTime()
-        )
+        Math.max(monthStart.getTime(), new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime())
       );
       const segEnd = new Date(
-        Math.min(
-          monthEnd.getTime(),
-          new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime()
-        )
+        Math.min(monthEnd.getTime(), new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime())
       );
-
       if (segEnd >= segStart) {
         const daysInMonth = monthEnd.getDate();
         const overlapDays = daysBetweenInclusive(segStart, segEnd);
         const fraction = Math.min(1, Math.max(0, overlapDays / daysInMonth));
         totalIncome += m * fraction;
       }
-
-      // next month
       cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
     }
     return totalIncome;
   }
 
-  // Effective income for the chosen range (e.g., Jan 1 → Feb 12 with 80k/month ≈ 80k * (31/31 + 12/28) = 80k * 1.4286 ≈ 1,14,286 for 2026 Feb(28))
-  const effectiveIncome = useMemo(() => {
-    if (!rangeStart || !rangeEnd) return Number(monthlySalary) || 0;
-    return getProratedIncomeForRange(
-      Number(monthlySalary) || 0,
-      rangeStart,
-      rangeEnd
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monthlySalary, rangeStart, rangeEnd]);
+  // Use applied salary or fallback to prop if invalid
+  const effectiveMonthly = useMemo(() => {
+    const s = Number(appliedSalary) || Number(monthlySalary) || 0;
+    return Math.max(0, s);
+  }, [appliedSalary, monthlySalary]);
 
-  // Derived metrics
+  // Active rule
+  const activeRule = useMemo(() => {
+    if (appliedRule?.key === "custom" && appliedRule?.p) return appliedRule;
+    if (appliedRule?.p) return appliedRule;
+    return RULES[0];
+  }, [RULES, appliedRule]);
+
+  // Prorated income for date range
+  const effectiveIncome = useMemo(() => {
+    if (!rangeStart || !rangeEnd) return effectiveMonthly;
+    return getProratedIncomeForRange(effectiveMonthly, rangeStart, rangeEnd);
+  }, [rangeStart, rangeEnd, effectiveMonthly, getProratedIncomeForRange]);
+
+  /* ----------------- DERIVED METRICS ----------------- */
   const k = useMemo(() => {
     const rent = categoryTotals["Rent/Bills"] || 0;
     const emis = categoryTotals["EMIs"] || 0;
@@ -126,353 +212,414 @@ export default function BudgetAdvisorPanel({
     const wantsActual = shopping + Math.max(0, other * 0.5);
 
     return {
-      rent,
-      emis,
-      cc,
-      grocery,
-      shopping,
-      other,
-      mutual,
-      stocks,
-      investing,
-      spent,
-      savings,
-      savingsRate,
-      needsActual,
-      wantsActual,
-      income,
+      rent, emis, cc, grocery, shopping, other,
+      mutual, stocks, investing, spent, savings, savingsRate,
+      needsActual, wantsActual, income
     };
   }, [categoryTotals, total, effectiveIncome]);
 
+  // Targets from ACTIVE RULE
   const plan = useMemo(() => {
     const income = k.income || 0;
-    const needsCap = income * 0.5;
-    const wantsCap = income * 0.3;
-    const investMin = income * 0.2;
+    const needsCap = income * (activeRule?.p?.needs ?? 0.5);
+    const wantsCap = income * (activeRule?.p?.wants ?? 0.3);
+    const investMin = income * (activeRule?.p?.invest ?? 0.2);
+
+    // Suggestions (we'll override wording below with simple language)
+    const suggestions = [];
 
     const overspend = Math.max(0, k.spent - income);
-    const debtPay = k.emis + k.cc;
-
-    const suggestions = [];
     if (income <= 0) {
-      suggestions.push(
-        "Provide a valid monthly salary to enable range-based analysis."
-      );
+      suggestions.push("Please enter a valid monthly salary to analyze this date range.");
     } else {
-      if (overspend > 0) {
-        suggestions.push(
-          `Overspending by ${fmt(
-            overspend
-          )} in this range. Reduce wants by 10–20% and prioritize debt paydown.`
-        );
-      } else {
-        suggestions.push(
-          `Savings in this range: ${fmt(k.savings)} (${Math.round(
-            k.savingsRate * 100
-          )}%). Keep ≥ 20% consistently.`
-        );
-      }
-      if (k.investing < investMin) {
-        suggestions.push(
-          `Investments below 20% target for the range. Add ~${fmt(
-            investMin - k.investing
-          )} to SIPs to hit the floor.`
-        );
-      }
-      if (k.wantsActual > wantsCap) {
-        suggestions.push(
-          `Wants at ${fmt(k.wantsActual)} exceed the 30% cap (${fmt(
-            wantsCap
-          )}) for this range.`
-        );
-      }
-      if (k.needsActual > needsCap) {
-        suggestions.push(
-          `Essentials at ${fmt(k.needsActual)} exceed the 50% guideline (${fmt(
-            needsCap
-          )}) for this range.`
-        );
-      }
+      if (overspend > 0) suggestions.push(`You spent a bit more than your income by ${fmt(overspend)}. Try lowering optional items a little.`);
       const ef3 = k.spent * 3;
       const ef6 = k.spent * 6;
       const efMonthly = Math.ceil(Math.max(0, ef3) / 12);
-      suggestions.push(
-        `Build emergency fund of ${fmt(ef3)}–${fmt(
-          ef6
-        )} (3–6× expenses). Save ~${fmt(efMonthly)}/mo.`
-      );
+      suggestions.push(`Aim for an emergency fund of ${fmt(ef3)}–${fmt(ef6)}. Saving about ${fmt(efMonthly)}/month will get you there.`);
     }
 
-    return {
-      needsCap,
-      wantsCap,
-      investMin,
-      overspend,
-      debtPay,
-      suggestions: suggestions.slice(0, 6),
-    };
-  }, [
-    fmt,
-    k.emis,
-    k.cc,
-    k.savings,
-    k.savingsRate,
-    k.spent,
-    k.investing,
-    k.needsActual,
-    k.wantsActual,
-    k.income,
-  ]);
+    return { needsCap, wantsCap, investMin, suggestions: suggestions.slice(0, 6) };
+  }, [k, activeRule, fmt]);
 
-  // progress & deltas relative to *range* income
-  const needsPctOfIncome = pct(k.needsActual, k.income);
-  const wantsPctOfIncome = pct(k.wantsActual, k.income);
-  const investPctOfIncome = pct(k.investing, k.income);
+  const srClass = k.savingsRate >= 0.2 ? "text-good" : k.savingsRate >= 0.1 ? "text-warn" : "text-bad";
 
-  const needsDelta = k.needsActual - plan.needsCap; // negative is good
-  const wantsDelta = k.wantsActual - plan.wantsCap; // negative is good
-  const investDelta = plan.investMin - k.investing; // positive means add more
+  /* ----------------- APPLY / VALIDATION ----------------- */
+  const isCustomActive = selectedRuleKey === "custom";
+  const customSum = Number(customNeeds || 0) + Number(customWants || 0) + Number(customInvest || 0);
+  const customError = isCustomActive && customSum !== 100;
 
-  const srClass =
-    k.savingsRate >= 0.2
-      ? "text-good"
-      : k.savingsRate >= 0.1
-      ? "text-warn"
-      : "text-bad";
+  function handleApplyControls() {
+    let ruleToApply = RULES.find((r) => r.key === selectedRuleKey) || RULES[0];
+    if (selectedRuleKey === "custom") {
+      if (customError) return;
+      ruleToApply = {
+        key: "custom",
+        label: "Custom",
+        p: {
+          needs: (Number(customNeeds) || 0) / 100,
+          wants: (Number(customWants) || 0) / 100,
+          invest: (Number(customInvest) || 0) / 100,
+        },
+        desc: "Custom split.",
+      };
+    }
 
-  // --- Highlight numbers in suggestions (unchanged) ---
+    const salaryNum = Math.max(0, Number(salaryInput) || 0);
+
+    setIsApplying(true);
+    setAppliedRule(ruleToApply);
+    setAppliedSalary(salaryNum);
+
+    try {
+      localStorage.setItem("advisor_prefs", JSON.stringify({
+        salary: salaryNum,
+        ruleKey: ruleToApply.key,
+        custom: ruleToApply.key === "custom" ? {
+          needs: Number(customNeeds) || 0,
+          wants: Number(customWants) || 0,
+          invest: Number(customInvest) || 0,
+        } : undefined,
+      }));
+    } catch { /* ignore */ }
+
+    setTimeout(() => setIsApplying(false), 650);
+  }
+
+  function handleResetControls() {
+    setSelectedRuleKey(DEFAULT_RULE_KEY);
+    setCustomNeeds("50");
+    setCustomWants("30");
+    setCustomInvest("20");
+    setAppliedRule(RULES[0]);
+    setSalaryInput(String(Number(monthlySalary) || 0));
+    setAppliedSalary(Number(monthlySalary) || 0);
+    try { localStorage.removeItem("advisor_prefs"); } catch { /* ignore */ }
+  }
+
   function renderWithHighlight(text) {
     const s = String(text);
-    const re = new RegExp(
-      `(₹\\s?\\d[\\d,\\.]*|\\d+[\\d,]*%|\\d+×|\\d+–\\d+×|/mo\\.)`,
-      "g"
-    );
+    const re = new RegExp(`(₹\\s?\\d[\\d,\\.]*|\\d+[\\d,]*%|\\d+×|\\d+–\\d+×|/mo\\.)`, "g");
     const nodes = [];
     let last = 0;
     let m;
     while ((m = re.exec(s)) !== null) {
       if (m.index > last) nodes.push(s.slice(last, m.index));
-      nodes.push(
-        <strong key={m.index} className="num-emphasis">
-          {m[0]}
-        </strong>
-      );
+      nodes.push(<strong key={m.index} className="num-emphasis">{m[0]}</strong>);
       last = m.index + m[0].length;
     }
     if (last < s.length) nodes.push(s.slice(last));
     return nodes;
   }
 
+  // ---- Helper: friendly rounding (to nearest 500 by default) ----
+  const roundTo = (amount, step = 500) =>
+    Math.round((Number(amount) || 0) / step) * step;
+
+  // Deltas for plain language
+  const wantsDelta = k.wantsActual - (plan?.wantsCap ?? 0);  // negative = good
+  const investShort = (plan?.investMin ?? 0) - k.investing;  // positive = need to add
+
+  // Build "Option A" simple suggestions with numbers (friendly-rounded)
+  const simpleSuggestions = useMemo(() => {
+    const out = [];
+
+    if (k.savings > 0) {
+      const pct = k.income ? Math.round((k.savings / k.income) * 100) : 0;
+      out.push(`Great — you saved ${fmt(k.savings)} this period (about ${pct}%). Keep going!`);
+    }
+
+    if (investShort > 300) {
+      const friendlyAdd = roundTo(investShort, 500); // e.g., ₹10,500 → shown as ₹10,500
+      // Also give a "small step" action like ₹2,000 more
+      const smallStep = roundTo(Math.max(2000, investShort * 0.2), 500);
+      out.push(`To reach a healthy investment level, add about ${fmt(friendlyAdd)} this time. If that’s tough, start with ${fmt(smallStep)} more and build up.`);
+    } else {
+      out.push(`Nice — your investing looks okay for this period. Maintain it or add a little more if you can.`);
+    }
+
+    if (wantsDelta > 1000) {
+      const trim = roundTo(wantsDelta, 500);
+      out.push(`Optional spending is a bit high. Try cutting about ${fmt(trim)} from non‑essentials next time.`);
+    } else {
+      out.push(`Your optional spending looks comfortable. Good control!`);
+    }
+
+    // Keep EF always last
+    const ef3 = k.spent * 3;
+    const ef6 = k.spent * 6;
+    const efMonthly = Math.ceil(Math.max(0, ef3) / 12);
+    out.push(`Build an emergency buffer of ${fmt(ef3)}–${fmt(ef6)} (3–6× monthly expenses). Saving about ${fmt(efMonthly)}/month gets you there steadily.`);
+
+    return out.slice(0, 4);
+  }, [k.savings, k.income, k.spent, wantsDelta, investShort, fmt]);
+
+  const selectedRule = RULES.find((r) => r.key === selectedRuleKey) || RULES[0];
+
   return (
     <aside className="advisor-panel">
-      <div className="advisor-card">
+      <div className={`advisor-card ${isApplying ? "loading" : ""}`}>
+        {/* ---------- Header with editable salary ---------- */}
         <header className="advisor-header">
           <div className="advisor-title-wrap">
             <div className="advisor-title-row">
               <h4 className="advisor-title">{title}</h4>
-              <div className="badge salary-badge">
-                {showSalary && (
-                  <>
-                    <span className="salary-label">Salary:</span>
-                    <strong className="salary-value">
-                      {showSalary ? fmt(monthlySalary) : "*****"}
-                    </strong>
-                  </>
-                )}
+
+              {/* Salary editor in header (with hide/show) */}
+              <div className="salary-editor" title={HELP.salary} aria-label={HELP.salary}>
+                <span className="prefix">{currencySymbol}</span>
+                <input
+                  className={`salary-input ${!showSalary ? "obscured" : ""}`}
+                  type={showSalary ? "number" : "password"}
+                  inputMode="numeric"
+                  min={showSalary ? "0" : undefined}
+                  step={showSalary ? "100" : undefined}
+                  value={salaryInput}
+                  onChange={(e) => setSalaryInput(e.target.value)}
+                  placeholder="0"
+                />
                 <button
                   className="icon-btn"
                   aria-label={showSalary ? "Hide salary" : "Show salary"}
                   title={showSalary ? "Hide salary" : "Show salary"}
                   onClick={() => setShowSalary((s) => !s)}
                 >
-                  {showSalary ? <EyeOffIcon /> : <EyeIcon />}
+                  {showSalary ? <EyeOffIcon/> : <EyeIcon/>}
                 </button>
               </div>
             </div>
-            <p className="advisor-subtitle muted">
-              Based on your monthly salary and current spending
-            </p>
+
+            {/* Rule + Apply/Reset */}
+            <div className="header-meta">
+              <div className="header-controls">
+                <div className="rule-dropdown" title={selectedRule.desc}>
+                  <label htmlFor="ruleSelect" className="ctrl-label">Budget rule</label>
+                  <select
+                    id="ruleSelect"
+                    className="select"
+                    value={selectedRuleKey}
+                    onChange={(e) => setSelectedRuleKey(e.target.value)}
+                  >
+                    {RULES.map(r => (
+                      <option key={r.key} value={r.key} title={r.desc}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  {selectedRuleKey === "custom" && (
+                    <div className="custom-inline" title="Enter a split that totals 100%">
+                      <div className="pct">
+                        <label title="Essentials (Needs)">Needs</label>
+                        <input type="number" min="0" max="100" step="1"
+                          value={customNeeds} onChange={(e)=>setCustomNeeds(e.target.value)} />
+                        <span>%</span>
+                      </div>
+                      <div className="pct">
+                        <label title="Wants (non‑essentials)">Wants</label>
+                        <input type="number" min="0" max="100" step="1"
+                          value={customWants} onChange={(e)=>setCustomWants(e.target.value)} />
+                        <span>%</span>
+                      </div>
+                      <div className="pct">
+                        <label title="Invest (MF + Stocks)">Invest</label>
+                        <input type="number" min="0" max="100" step="1"
+                          value={customInvest} onChange={(e)=>setCustomInvest(e.target.value)} />
+                        <span>%</span>
+                      </div>
+                      <div className={`sum ${customError ? "bad" : ""}`}>Sum: {customSum}%</div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="header-actions">
+                  <button
+                    className="btn primary"
+                    onClick={handleApplyControls}
+                    disabled={customError || isApplying}
+                    title={customError ? "Custom split must sum to 100%" : "Apply salary & rule"}
+                  >
+                    {isApplying ? "Applying..." : "Apply"}
+                  </button>
+                  <button className="btn" onClick={handleResetControls} disabled={isApplying}>
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </header>
 
-        {/* KPIs */}
+        {/* ---------- KPIs ---------- */}
         <section className="kpis">
-          <div className="kpi">
+          <div className="kpi" title="Total outflow in this date range">
             <span className="kpi-label">Total Spent</span>
-            <span className="kpi-value number-strong">{fmt(k.spent)}</span>
+            <span className={`kpi-value number-strong ${isApplying ? "skeleton" : ""}`}>
+              {fmt(k.spent)}
+            </span>
           </div>
-          <div className="kpi">
+          <div className="kpi" title="Income (range-adjusted) minus Spent">
             <span className="kpi-label">Savings</span>
-            <span className="kpi-value number-strong text-good">
+            <span className={`kpi-value number-strong text-good ${isApplying ? "skeleton" : ""}`}>
               {fmt(k.savings)}
             </span>
           </div>
-          <div className="kpi">
+          <div className="kpi" title="Savings ÷ Range Income">
             <span className="kpi-label">Savings Rate</span>
-            <span className={`kpi-value number-strong ${srClass}`}>
+            <span className={`kpi-value number-strong ${srClass} ${isApplying ? "skeleton" : ""}`}>
               {k.income ? `${Math.round(k.savingsRate * 100)}%` : "—"}
             </span>
           </div>
-          <div className="kpi">
-            <span className="kpi-label">Investment</span>
-            <span className="kpi-value number-strong text-accent">
+          <div className="kpi" title={HELP.invest}>
+            <span className="kpi-label">Investing</span>
+            <span className={`kpi-value number-strong text-accent ${isApplying ? "skeleton" : ""}`}>
               {fmt(k.investing)}
             </span>
           </div>
         </section>
 
-        {/* Progress bars */}
-        <section className="progress-block">
-          {/* --- Compact Mini Allocation (Option C) --- */}
-          <section className="alloc-mini">
-            <div className="alloc-header">
-              <h5 className="section-title">Allocation Overview</h5>
-              <span className="alloc-help muted">
-                <abbr title="Needs: Essentials (Rent/Bills, Grocery, EMIs, Credit Card); Wants: Non-essentials (Shopping); Invest: Mutual Fund + Stocks">
-                  (needs, wants, invest)
-                </abbr>
-              </span>
-            </div>
+        {/* ---------- Spending Analysis (Option A: friendly) ---------- */}
+        <section className="simple-analysis">
+          <h5 className="section-title">Spending Analysis</h5>
 
-            <MiniAllocationRow
-              label="Needs"
-              help="Essentials: Rent/Bills, Grocery, EMIs, Credit Card, ~½ Other"
-              percent={needsPctOfIncome}
-              actual={k.needsActual}
-              target={plan.needsCap}
-              currencySymbol={currencySymbol}
-              variant="needs"
-              delta={needsDelta} // negative is good
-              invertDelta={false}
-            />
+          <PlainAnalysisItem
+            loading={isApplying}
+            title={<LabelWithTip label="Essentials (Needs)" tip={HELP.needs} />}
+            amount={k.needsActual}
+            delta={k.needsActual - plan.needsCap} // negative means “less than typical”
+            currencySymbol={currencySymbol}
+            // Text: “You spent X. This is less/more than typical. Guidance line.”
+          />
 
-            <MiniAllocationRow
-              label="Wants"
-              help="Non-essentials: Shopping, ~½ Other"
-              percent={wantsPctOfIncome}
-              actual={k.wantsActual}
-              target={plan.wantsCap}
-              currencySymbol={currencySymbol}
-              variant="wants"
-              delta={wantsDelta} // negative is good
-              invertDelta={false}
-            />
+          <PlainAnalysisItem
+            loading={isApplying}
+            title={<LabelWithTip label="Wants (Optional stuff)" tip={HELP.wants} />}
+            amount={k.wantsActual}
+            delta={k.wantsActual - plan.wantsCap}
+            currencySymbol={currencySymbol}
+          />
 
-            <MiniAllocationRow
-              label="Invest"
-              help="Investing: Mutual Fund + Stocks"
-              percent={investPctOfIncome}
-              actual={k.investing}
-              target={plan.investMin}
-              currencySymbol={currencySymbol}
-              variant="invest"
-              delta={investDelta} // <= 0 is good (met or exceeded)
-              invertDelta={true}
-            />
-          </section>
+          <PlainAnalysisItem
+            loading={isApplying}
+            title={<LabelWithTip label="Investing (MF + Stocks)" tip={HELP.invest} />}
+            amount={k.investing}
+            // For investing we invert: if short of target → deltaShort > 0
+            deltaShort={(plan.investMin - k.investing)}
+            investMode
+            currencySymbol={currencySymbol}
+            smallStep={roundTo(Math.max(2000, (plan.investMin - k.investing) * 0.2), 500)}
+          />
         </section>
 
-        {/* Suggestions */}
+        {/* ---------- Top Suggestions (simple bullets) ---------- */}
         <section className="suggestions">
           <h5 className="section-title">Top Suggestions</h5>
           <ul className="suggestion-list">
-            {plan.suggestions.map((s, i) => (
-              <li key={i} className="suggestion-item">
-                <span className="suggestion-text">
-                  {renderWithHighlight(s)}
-                </span>
-              </li>
-            ))}
+            {(isApplying
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <li key={i} className="suggestion-item">
+                    <span className="suggestion-text skeleton" style={{ display: "inline-block", width: "90%" }} />
+                  </li>
+                ))
+              : simpleSuggestions.map((s, i) => (
+                  <li key={i} className="suggestion-item">
+                    <span className="suggestion-text">{renderWithHighlight(s)}</span>
+                  </li>
+                )))}
           </ul>
         </section>
 
         <footer className="fine-print muted">
-          This assistant uses budgeting heuristics (50/30/20, debt avalanche)
-          and your category totals. Income and targets are prorated to your
-          selected date range.
+          Targets & insights use your selected budget rule and range‑adjusted income.
+          You can change both anytime above.
         </footer>
       </div>
     </aside>
   );
 }
 
-function MiniAllocationRow({
-  label,
-  help,
-  percent = 0, // percent of range income (0..100)
-  actual = 0,
-  target = 0,
-  currencySymbol = "₹",
-  variant = "needs", // 'needs' | 'wants' | 'invest'
-  delta = 0,
-  invertDelta = false, // for Invest, <= 0 is good
+/* ---------- Simple, friendly analysis rows ---------- */
+function PlainAnalysisItem({
+  title,
+  amount,
+  delta,       // for Needs/Wants (negative = spent less than typical)
+  deltaShort,  // for Investing shortfall (positive = add more)
+  currencySymbol,
+  loading,
+  investMode = false,
+  smallStep = 2000,
 }) {
-  const pctClamped = Math.min(100, Math.max(0, Math.round(percent || 0)));
-  const isGood = invertDelta ? delta <= 0 : delta <= 0;
-  const deltaSign = delta === 0 ? "" : delta > 0 ? "+" : "−";
-  const deltaAbs = Math.abs(delta);
-
   const fmtLocal = (n) => formatINR(Math.round(n || 0), currencySymbol);
 
+  if (loading) {
+    return (
+      <div className="analysis-item loading">
+        <h4 className="analysis-title">{title}</h4>
+        <p className="analysis-line skeleton"></p>
+        <p className="analysis-line skeleton"></p>
+      </div>
+    );
+  }
+
+  if (!investMode) {
+    // Needs / Wants
+    const isUnder = Number(delta) <= 0;
+    const abs = Math.abs(Number(delta) || 0);
+    return (
+      <div className="analysis-item">
+        <h4 className="analysis-title">{title}</h4>
+        <p className="analysis-line">
+          You spent <strong>{fmtLocal(amount)}</strong>. This is{" "}
+          <strong>{isUnder ? "less" : "more"}</strong> than what people usually spend
+          for this time period by <strong>{fmtLocal(abs)}</strong>.
+        </p>
+        <p className={isUnder ? "analysis-good" : "analysis-bad"}>
+          {isUnder ? "👍 Nice job — you’re spending wisely here." : "⚠️ Try to keep this a bit lower next time."}
+        </p>
+      </div>
+    );
+  }
+
+  // Investing
+  const short = Math.max(0, Number(deltaShort) || 0);
   return (
-    <div
-      className="alloc-mini-row"
-      role="group"
-      aria-label={`${label} allocation`}
-    >
-      {/* Left: label + % */}
-      <div className="am-left">
-        <span className="am-label" title={help}>
-          {label}
-        </span>
-        <span className="am-pct">{pctClamped}%</span>
-      </div>
-
-      {/* Middle: tiny bar */}
-      <div className="am-bartrack" aria-hidden="true">
-        <span
-          className={`am-bar ${variant}`}
-          style={{ width: `${pctClamped}%` }}
-        />
-      </div>
-
-      {/* Right: delta chip */}
-      <div className="am-right">
-        {Math.abs(delta) >= 1 ? (
-          <span className={`am-delta ${isGood ? "good" : "bad"}`}>
-            {deltaSign}
-            {fmtLocal(deltaAbs)}
-          </span>
-        ) : (
-          <span className="am-delta neutral">On Target</span>
-        )}
-      </div>
-
-      {/* Second line: Actual / Target */}
-      <div className="am-meta">
-        <span className="am-actual">
-          Actual: <strong>{fmtLocal(actual)}</strong>
-        </span>
-        <span className="am-target muted">Target: {fmtLocal(target)}</span>
-      </div>
+    <div className="analysis-item">
+      <h4 className="analysis-title">{title}</h4>
+      {short > 0 ? (
+        <>
+          <p className="analysis-line">
+            You invested <strong>{fmtLocal(amount)}</strong>. To be in a healthy zone,
+            try adding about <strong>{fmtLocal(short)}</strong> this time.
+          </p>
+          <p className="analysis-bad">📌 If that feels big, start with just <strong>{fmtLocal(smallStep)}</strong> more and build up.</p>
+        </>
+      ) : (
+        <>
+          <p className="analysis-line">
+            You invested <strong>{fmtLocal(amount)}</strong>. That’s good for this period.
+          </p>
+          <p className="analysis-good">👍 Keep this going — even small regular amounts help a lot.</p>
+        </>
+      )}
     </div>
+  );
+}
+
+function LabelWithTip({ label, tip }) {
+  return (
+    <span className="label-tip">
+      {label}
+      <span className="info" title={tip} aria-label={tip}><InfoIcon /></span>
+    </span>
   );
 }
 
 /* ---------- Icons ---------- */
 function EyeIcon({ size = 16 }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true">
       <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" />
       <circle cx="12" cy="12" r="3" />
     </svg>
@@ -480,21 +627,24 @@ function EyeIcon({ size = 16 }) {
 }
 function EyeOffIcon({ size = 16 }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true">
       <path d="m3 3 18 18" />
       <path d="M10.6 10.6a3 3 0 1 0 4.2 4.2" />
       <path d="M9.5 5.1A10.9 10.9 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-5.1 5.1" />
       <path d="M6.1 6.1A18.5 18.5 0 0 0 1 12s4 7 11 7c1.1 0 2.2-.2 3.2-.5" />
+    </svg>
+  );
+}
+function InfoIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="16" x2="12" y2="12"></line>
+      <line x1="12" y1="8" x2="12.01" y2="8"></line>
     </svg>
   );
 }

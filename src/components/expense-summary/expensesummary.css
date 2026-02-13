@@ -256,6 +256,7 @@ input[type="date"]:focus {
   border: 0;
   cursor: pointer;
   color: var(--muted);
+  padding: 4px !important;
 }
 .icon-btn:hover {
   color: var(--text);
@@ -434,101 +435,233 @@ input[type="date"]:focus {
   border-radius: 16px;
   padding: 16px;
 }
-/* --- Mini Allocation (Option C) --- */
-.alloc-mini {
+.simple-analysis {
+  padding: 10px 12px;
   display: grid;
-  gap: 8px;
-  padding: 6px 12px 10px;
-}
-.alloc-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.alloc-header .section-title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-.alloc-help {
-  font-size: 0.8rem;
-}
-.alloc-help abbr {
-  text-decoration: none;
-  border-bottom: 1px dashed var(--border);
-  cursor: help;
+  gap: 12px;
 }
 
-.alloc-mini-row {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  grid-template-areas:
-    "left bar right"
-    "meta meta meta";
-  align-items: center;
-  gap: 6px 10px;
-  padding: 6px 8px;
+.analysis-item {
   border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 90%, transparent);
+  padding: 10px 12px;
   border-radius: 10px;
+}
+
+.analysis-title {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.analysis-line {
+  margin: 2px 0 6px;
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.analysis-good {
+  color: #22c55e;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.analysis-bad {
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+/* ---------- Advisor controls ---------- */
+.advisor-controls {
+  display: grid;
+  gap: 10px;
+  padding: 10px 12px 4px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+}
+.ctrl { display: grid; gap: 6px; }
+.ctrl-label { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+
+.ctrl.salary-edit .ctrl-field {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--border); border-radius: 10px; padding: 6px 10px;
+  background: color-mix(in srgb, var(--card) 90%, transparent);
+  max-width: 220px;
+}
+.ctrl.salary-edit .ctrl-field .prefix { color: var(--muted); }
+.ctrl.salary-edit input {
+  border: none; outline: none; background: transparent; color: var(--text);
+  width: 140px; font-weight: 700;
+}
+
+.rule-select .rule-row {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.rule-select .custom-row {
+  display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-top: 6px;
+}
+.pct-input { display: grid; gap: 2px; }
+.pct-input input {
+  width: 84px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text);
+}
+.pct-input label { font-size: 0.8rem; color: var(--muted); }
+.custom-row .sum { font-size: 0.85rem; color: var(--muted); align-self: center; }
+.custom-row .sum.bad { color: #ef4444; font-weight: 700; }
+
+.rule-desc {
+  display: inline-flex; gap: 6px; align-items: center; margin-top: 2px;
+  color: var(--muted); font-size: 0.85rem;
+}
+.rule-desc svg { opacity: .8; }
+
+.ctrl.actions { display: inline-flex; gap: 8px; }
+
+/* label with info */
+.label-tip { display: inline-flex; align-items: center; gap: 6px; }
+.label-tip .info { display: inline-flex; color: var(--muted); cursor: help; }
+.label-tip .info:hover { color: var(--text); }
+
+/* Responsive tightening */
+@media (max-width: 768px) {
+  .advisor-controls { padding: 8px 10px 0; }
+  .ctrl.salary-edit .ctrl-field { max-width: 100%; }
+}
+/* ---------- Header salary (hide/show works) ---------- */
+.salary-editor {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--card) 90%, transparent);
+  padding: 0px 5px;
+}
+.salary-editor .prefix { color: var(--muted); font-weight: 600; }
+.salary-input {
+  width: 130px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.salary-input.obscured {
+  /* helps obscure if browser doesn't render bullets for number */
+  -webkit-text-security: disc;
+}
+
+/* ---------- One-row: select + clear + apply ---------- */
+.rule-actions-row {
+  margin-top: 8px;
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.header-controls{
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rule-dropdown { display: grid; gap: 6px; }
+.select {
+  appearance: none;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  min-width: 220px;
+}
+.header-actions{
+  display: flex;
+  gap: 8px;
+}
+
+/* Custom inputs below (compact) */
+.custom-inline {
+  display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-top: 6px;
+}
+.custom-inline .pct { display: grid; gap: 2px; }
+.custom-inline .pct input {
+  width: 84px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text);
+}
+.custom-inline .pct label { font-size: 0.8rem; color: var(--muted); }
+.custom-inline .sum { font-size: 0.85rem; color: var(--muted); align-self: center; }
+.custom-inline .sum.bad { color: #ef4444; font-weight: 700; }
+
+/* ---------- Skeleton shimmer (loading after Apply) ---------- */
+@keyframes shimmer {
+  0% { background-position: -450px 0; }
+  100% { background-position: 450px 0; }
+}
+.skeleton {
+  color: transparent !important;
+  position: relative;
+  border-radius: 6px;
+  background-color: rgba(148,163,184,0.25);
+  background-image: linear-gradient(
+    to right,
+    rgba(148,163,184,0.25) 0%,
+    rgba(148,163,184,0.45) 20%,
+    rgba(148,163,184,0.25) 40%,
+    rgba(148,163,184,0.25) 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 800px 100%;
+  animation: shimmer 1.1s infinite linear forwards;
+}
+.advisor-card.loading { opacity: 0.98; }
+
+/* ---------- Super-simple status rows ---------- */
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  border-radius: 10px;
+}
+.status-row .status-left { font-weight: 700; color: var(--text); }
+.status-badge {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+.status-badge .dot {
+  width: 8px; height: 8px; border-radius: 999px; display: inline-block;
+  background: currentColor;
+}
+.status-row.ok   .status-badge { color: #22c55e; background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.35); }
+.status-row.warn .status-badge { color: #f97316; background: rgba(249,115,22,0.12); border-color: rgba(249,115,22,0.35); }
+.status-row.info .status-badge { color: #6366f1; background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.35); }
+
+/* ---------- Suggestions: concise ---------- */
+.suggestions .suggestion-list { gap: 6px; }
+.suggestion-item {
+  border-left: 3px solid var(--primary);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
   background: color-mix(in srgb, var(--card) 94%, transparent);
 }
 
-.am-left { grid-area: left; display: inline-flex; align-items: baseline; gap: 8px; }
-.am-label { font-weight: 800; color: var(--text); font-size: 0.9rem; }
-.am-pct { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); }
-
-.am-bartrack {
-  grid-area: bar;
-  width: 100%;
-  height: 6px;
-  background: color-mix(in srgb, var(--surface, #0b1220) 94%, transparent);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  overflow: hidden;
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .rule-actions-row { align-items: stretch; }
+  .select { min-width: 100%; }
+  .salary-input { width: 55px; }
 }
-.am-bar {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  transition: width 240ms ease;
-}
-.am-bar.needs  { background: linear-gradient(90deg, #fb923c, #f97316); }
-.am-bar.wants  { background: linear-gradient(90deg, #a78bfa, #7c3aed); }
-.am-bar.invest { background: linear-gradient(90deg, #34d399, #059669); }
-
-.am-right { grid-area: right; }
-.am-delta {
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  border: 1px solid var(--border);
-  white-space: nowrap;
-}
-.am-delta.good {
-  background: rgba(34,197,94,0.15);
-  color: #22c55e;
-  border-color: rgba(34,197,94,0.35);
-}
-.am-delta.bad {
-  background: rgba(244,63,94,0.15);
-  color: #f43f5e;
-  border-color: rgba(244,63,94,0.35);
-}
-.am-delta.neutral {
-  background: rgba(148,163,184,0.15);
-  color: #9aa4b2;
-  border-color: rgba(148,163,184,0.35);
-}
-
-.am-meta {
-  grid-area: meta;
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
-  margin-top: 2px;
-}
-.am-meta strong { font-weight: 800; }
-.am-target.muted { color: var(--muted); }
 
 /* Tighter on mobile */
 @media (max-width: 768px) {
